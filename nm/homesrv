@@ -1,0 +1,9 @@
+# HomeSrv Kobo client (skeleton) — NickelMenu config.
+# Install to /mnt/onboard/.adds/nm/homesrv
+#
+# "HomeSrv" draws the skeleton screen over Nickel, then exits.
+# "HomeSrv Version" runs the binary with --version and shows its output in a
+# message box; useful to verify the binary executes even if drawing fails.
+
+menu_item :main :HomeSrv         :cmd_spawn  :quiet:/bin/sh /mnt/onboard/.adds/homesrv/homesrv.sh
+menu_item :main :HomeSrv Version :cmd_output :2000:/mnt/onboard/.adds/homesrv/bin/homesrv --version
