@@ -1,86 +1,86 @@
 # HomeSrv Kobo client
 
-Native e-ink client skeleton for HomeSrv, targeting Kobo e-readers (developed
-against a Kobo Glo / Glo HD, firmware 4.x). Launched from [NickelMenu], renders
-with [FBInk], cross-compiled with the [NickelTC] toolchain container.
+Native e-ink dashboard client for HomeSrv, targeting Kobo e-readers
+(developed against a Kobo Glo / Glo HD, firmware 4.x).
 
-Current state: **skeleton only**. It draws a hello screen over Nickel and
-exits — the point is to validate the build → install → launch pipeline.
+Launched from [NickelMenu], renders with [FBInk] (OpenType font rendering),
+cross-compiled with the [NickelTC] toolchain container.
 
-[NickelMenu]: https://pgaskin.net/NickelMenu
-[FBInk]: https://github.com/NiLuJe/FBInk
-[NickelTC]: https://github.com/pgaskin/NickelTC
+Features:
+- Weather display (current temp, forecast, Unicode icons)
+- Task list with Done / Defer buttons (sorted by due date, status-colored)
+- Calendar events for today and tomorrow (with feed name)
+- Defer modal (1 day, 2 days, 4 days, 1 week)
+- Touch input via libevdev
+- Auto-refresh every 15 minutes
+- Full-screen takeover (stops/restarts Nickel, like KOReader)
 
 ## Layout
 
-- `src/main.c` — the app. `--version` prints to stdout; otherwise draws the
-  hello screen via FBInk (linked statically, `MINIMAL=1 BITMAP=1` build).
-- `scripts/homesrv.sh` — launcher run by NickelMenu; logs the most recent run
-  to `.adds/homesrv/homesrv.log` on the device.
-- `nm/homesrv` — NickelMenu config adding two main-menu items:
-  `HomeSrv` (run the app) and `HomeSrv Version` (show `--version` output in a
-  message box — proves the binary executes even if drawing fails).
-- `Makefile` — host targets orchestrate podman; `inner-*` targets run inside
-  the NickelTC container.
-- `vendor/FBInk/` — FBInk v1.25.0 source, cloned on demand (not committed).
+- `src/main.c` — main app: event loop, touch input, rendering (~530 lines)
+- `src/http.c` / `.h` — socket-based HTTP/1.0 client
+- `src/json.c` / `.h` — JSON response parsing via cJSON
+- `src/layout.h` — layout constants, data structures, function declarations
+- `fonts/DejaVuSans.ttf` — bundled proportional font, downloaded at build time
+- `scripts/homesrv.sh` — launcher: stops Nickel, runs homesrv, restores Nickel
+- `nm/homesrv` — NickelMenu config (main menu entries)
+- `Makefile` — build orchestration via podman/NickelTC
+- `vendor/FBInk/` — FBInk v1.25.0, cloned on demand
+- `vendor/cJSON/` — cJSON v1.7.15, downloaded at build time
 
 ## Prerequisites
 
-- podman (the NickelTC image `ghcr.io/pgaskin/nickeltc:1.0` is ~1 GB, pulled
-  once via `make toolchain` or on first build)
-- git (to fetch FBInk with submodules)
+- podman
+- git, curl
 
 ## Build
 
 ```bash
-make            # clone FBInk if needed, build libfbink.a + app, stage dist/
-file build/homesrv   # expect: ELF 32-bit LSB executable, ARM, EABI5
-```
-
-Artifacts land in `dist/`:
-
-```
-dist/.adds/homesrv/bin/homesrv   ARM binary
-dist/.adds/homesrv/homesrv.sh    launcher
-dist/.adds/nm/homesrv            NickelMenu config
-dist/homesrv-kobo-<ver>.tgz      the same tree, tarred
+make -C kobo
+file kobo/build/homesrv   # expect: ELF 32-bit ARM EABI5
 ```
 
 ## Install
 
-Connect the Kobo over USB and confirm the connection on the device, then:
+1. Ensure the HomeSrv server is running and reachable on the LAN.
+2. Go to Settings → API Token in the web UI; copy the token.
+3. Connect the Kobo over USB, confirm the connection on the device, then:
 
 ```bash
-make install                       # assumes /run/media/$USER/KOBOeReader
-make install KOBO_MOUNT=/path/to/KOBOeReader
+make -C kobo install
+# answers: http://192.168.x.x:8080  and  the token
 ```
 
-(Or manually copy `dist/.adds/*` into the `.adds/` folder on the Kobo.)
-Eject the Kobo. NickelMenu picks up config changes automatically; if the new
-entries don't appear in the main menu, reboot the device.
+Or copy `kobo/dist/.adds/` onto the Kobo manually and create the config file:
 
-## Validate on the device
+```
+# /mnt/onboard/.adds/homesrv/config
+SERVER_URL=http://192.168.x.x:8080
+API_TOKEN=abc123...
+```
 
-1. Open the NickelMenu main menu → tap **HomeSrv Version**: a message box
-   should show `homesrv-kobo 0.1.0 (FBInk v1.25.0 ...)`.
-2. Tap **HomeSrv**: the screen flashes and shows the HomeSrv banner plus the
-   detected device/resolution. Nickel keeps running underneath; open any menu
-   to make it redraw.
+## Usage
+
+- **HomeSrv**: launches the dashboard (full-screen takeover, exits on SIGTERM)
+- **HomeSrv Version**: message box showing version + FBInk version
+
+The app stops Nickel on launch and restores it on exit. To exit the app and
+return to Nickel, you can kill the process (e.g., via telnet/SSH).
 
 ## Troubleshooting
 
-- Check `.adds/homesrv/homesrv.log` on the Kobo (log of the most recent run).
-- NickelMenu reports config syntax errors as an item in the main menu.
-- Deeper digging: telnet/SSH in and run `logread`.
+- `.adds/homesrv/homesrv.log` on the Kobo — most recent run output
+- NickelMenu reports config syntax errors as main-menu items
+- If the screen stays white/frozen: telnet/SSH in and run `killall homesrv`
 
 ## Uninstall
 
 Delete `.adds/homesrv/` and `.adds/nm/homesrv` from the Kobo.
 
-## Next steps (not implemented)
+## Next steps (post-validation)
 
-- Wi-Fi: chain `nickel_wifi :autoconnect` in the NM config before launching.
-- Talk to HomeSrv over HTTP (JSON endpoints on the server side).
-- Touch input (FBInk ships libevdev; input via `/dev/input/event*`).
-- Full-screen takeover (stop Nickel while the app runs, restart on exit) once
-  the app becomes interactive.
+- Wi-Fi auto-connect chain in NM config
+- Better button labels with visible borders
+- Calendar tap-to-scroll for more events
+- Partial updates for done/defer instead of full refresh
+- USB networking fallback
