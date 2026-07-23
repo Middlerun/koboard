@@ -41,8 +41,8 @@ void layout_compute(struct Layout *l, int sw, int sh)
 	l->col_left = l->margin;
 	l->col_right = l->margin + l->col_half + l->gap;
 
-	l->modal_w = sw / 3;              if (l->modal_w > 380) l->modal_w = 380;
-	l->modal_h = sh / 3;              if (l->modal_h > 280) l->modal_h = 280;
+	l->modal_w = sw * 2 / 3;          if (l->modal_w > 700) l->modal_w = 700;
+	l->modal_h = sh / 3;              if (l->modal_h > 450) l->modal_h = 450;
 	l->modal_opt_h = l->modal_h / 7;
 
 	l->font_date   = 14;
@@ -350,16 +350,16 @@ int render_tasks(struct AppState *s, int top, int col_x, int col_w)
 		ot_setup(&ot, y + 2, text_x, col_rm, (unsigned) l->font_meta, false);
 		ot_print_top(s->fbfd, buf, &ot, &y);
 
-		// Buttons
+		// Buttons — Done on left, Defer on right side of column
 		y += 4;
 		ot_setup(&ot, y, text_x, col_rm, (unsigned) l->font_btn, false);
 		ot_print(s->fbfd, "Done", &ot);
 
-		int defer_x = text_x + (col_w - 2 * l->margin) / 2;
-		ot_setup(&ot, y, defer_x, col_rm, (unsigned) l->font_btn, false);
+		int defer_x = col_x + col_w * 3 / 4;
+		ot_setup(&ot, y, defer_x, l->margin, (unsigned) l->font_btn, false);
 		ot_print(s->fbfd, "Defer", &ot);
 
-		y += l->gap + 2;
+		y += l->gap + 20;
 
 		// Record card bottom for hit-testing
 		s->task_card_bottom[s->task_count++] = y;
@@ -502,16 +502,17 @@ void render_modal(const struct AppState *s)
 	pen(LUM_WHITE);
 
 	FBInkOTConfig ot;
-	ot_setup(&ot, my + 10, mx + l->margin,
+	ot_setup(&ot, my + 14, mx + l->margin,
 		 s->screen_w - mx - l->modal_w + l->margin,
 		 (unsigned) l->font_header, false);
 	char buf[256];
 	snprintf(buf, sizeof(buf), "Defer: %s", s->modal_title);
 	ot_print(s->fbfd, buf, &ot);
 
+	// First option leaves room for up to 2 lines of heading
 	static const char *options[] = {"1 day","2 days","4 days","1 week", NULL};
 	for (int i = 0; options[i]; i++) {
-		int oy = my + 60 + i * l->modal_opt_h;
+		int oy = my + 110 + i * 60;
 		ot_setup(&ot, oy, mx + l->margin * 2,
 			 s->screen_w - mx - l->modal_w + l->margin * 2,
 			 (unsigned) l->font_modal, false);
@@ -519,7 +520,7 @@ void render_modal(const struct AppState *s)
 		ot_print(s->fbfd, buf, &ot);
 	}
 
-	int cy = my + l->modal_h - l->modal_opt_h;
+	int cy = my + 370;
 	ot_setup(&ot, cy, mx + l->margin * 2,
 		 s->screen_w - mx - l->modal_w + l->margin * 2,
 		 (unsigned) l->font_btn, true);
@@ -554,7 +555,7 @@ void render_full_screen(struct AppState *s)
 	fbink_cls(s->fbfd, &g_cfg_draw, NULL, false);
 	pen(LUM_WHITE);
 
-	int y = 20;
+	int y = 40;
 	y = render_clock_row(s, y);
 	y += 20;
 
@@ -589,12 +590,13 @@ void render_full_screen(struct AppState *s)
 	strftime(time_str, sizeof(time_str), "%H:%M", ltm);
 	if (s->offline)
 		snprintf(status, sizeof(status),
-			 "Last refresh: %s \u00B7 Offline", time_str);
+			 "Last refresh: %s  \u00B7 Offline", time_str);
 	else
-		snprintf(status, sizeof(status), "Last refresh: %s", time_str);
+		snprintf(status, sizeof(status),
+			 "Last refresh: %s  \u00B7 Online", time_str);
 	FBInkOTConfig ots;
-	ot_setup(&ots, s->screen_h - 30, s->screen_w - 280, l->margin,
-		 (unsigned) (l->font_meta - 1), false);
+	ot_setup(&ots, s->screen_h - 30, l->margin, 200,
+		 (unsigned) (l->font_meta - 2), false);
 	FBInkConfig sc = g_cfg_draw;
 	sc.fg_color = FG_GRAY6;
 	fbink_print_ot(s->fbfd, status, &ots, &sc, NULL);
@@ -652,14 +654,13 @@ int task_index_from_y(int touch_y, const int *card_bottoms,
 int modal_option_from_y(int touch_y, int screen_h, int modal_h)
 {
 	int my = (screen_h - modal_h) / 2;
-	int base = my + 60;
-	for (int i = 0; i < 5; i++) {
-		int oy = base + i * (modal_h / 8);
-		if (touch_y >= oy - 8 && touch_y <= oy + (modal_h / 8) - 8)
+	for (int i = 0; i < 4; i++) {
+		int oy = my + 110 + i * 60;
+		if (touch_y >= oy - 10 && touch_y <= oy + 50)
 			return i;
 	}
-	int cy = my + modal_h - (modal_h / 8) - 10;
-	if (touch_y >= cy - 8) return 4;
+	int cy = my + 370;
+	if (touch_y >= cy - 10 && touch_y <= cy + 50) return 4;
 	return -1;
 }
 
@@ -673,8 +674,9 @@ int button_hit(int touch_x, int touch_y, int card_bottom,
 {
 	int btn_top = card_bottom - 36;
 	if (touch_y < btn_top || touch_y > card_bottom) return 0;
-	if (touch_x > col_x + 8 && touch_x < col_x + 80) return 1;    // Done
-	if (touch_x > col_x + 100 && touch_x < col_x + 200) return 2;  // Defer
+	// Done: left third of column, Defer: right third
+	if (touch_x > col_x && touch_x < col_x + 160) return 1;   // Done
+	if (touch_x > col_x + 340 && touch_x < col_x + 500) return 2; // Defer
 	return 0;
 }
 
@@ -716,8 +718,15 @@ static int api_complete(struct AppState *s, int task_id)
 	char path[128]; snprintf(path, sizeof(path), "/api/tasks/complete.php");
 	char post[64];  snprintf(post, sizeof(post), "task_id=%d", task_id);
 	struct HttpResponse resp;
-	if (http_post(s->server_url, path, s->api_token, post, &resp) < 0) return -1;
-	if (resp.status != 200) { http_free_response(&resp); return -1; }
+	if (http_post(s->server_url, path, s->api_token, post, &resp) < 0) {
+		fprintf(stderr, "homesrv: complete id=%d failed (network error)\n", task_id);
+		return -1;
+	}
+	if (resp.status != 200) {
+		fprintf(stderr, "homesrv: complete id=%d failed (HTTP %d)\n", task_id, resp.status);
+		http_free_response(&resp); return -1;
+	}
+	fprintf(stderr, "homesrv: complete id=%d ok\n", task_id);
 	http_free_response(&resp);
 	return 0;
 }
@@ -727,8 +736,15 @@ static int api_defer(struct AppState *s, int task_id, const char *new_due)
 	char path[128]; snprintf(path, sizeof(path), "/api/tasks/defer.php");
 	char post[256]; snprintf(post, sizeof(post), "task_id=%d&new_due=%s", task_id, new_due);
 	struct HttpResponse resp;
-	if (http_post(s->server_url, path, s->api_token, post, &resp) < 0) return -1;
-	if (resp.status != 200) { http_free_response(&resp); return -1; }
+	if (http_post(s->server_url, path, s->api_token, post, &resp) < 0) {
+		fprintf(stderr, "homesrv: defer id=%d failed (network error)\n", task_id);
+		return -1;
+	}
+	if (resp.status != 200) {
+		fprintf(stderr, "homesrv: defer id=%d failed (HTTP %d)\n", task_id, resp.status);
+		http_free_response(&resp); return -1;
+	}
+	fprintf(stderr, "homesrv: defer id=%d ok\n", task_id);
 	http_free_response(&resp);
 	return 0;
 }
@@ -753,6 +769,7 @@ int main(int argc, char *argv[])
 
 	struct AppState s;
 	memset(&s, 0, sizeof(s));
+	s.last_refresh_success = time(NULL);
 
 	const char *base_dir = (argc > 1) ? argv[1] : "/mnt/onboard/.adds/homesrv";
 	snprintf(s.base_dir, sizeof(s.base_dir), "%s", base_dir);
@@ -855,8 +872,11 @@ int main(int argc, char *argv[])
 		}
 
 		if (s.data_loaded && (now - s.last_refresh >= 1800 || s.refresh_pending)) {
-			fprintf(stderr, "homesrv: refreshing... (interval=%lds)\n",
-				(long) (now - s.last_refresh));
+			if (s.refresh_pending)
+				fprintf(stderr, "homesrv: refresh (user action)\n");
+			else
+				fprintf(stderr, "homesrv: refreshing... (interval=%lds)\n",
+					(long) (now - s.last_refresh));
 			if (fetch_dashboard(&s) == 0) {
 				fprintf(stderr, "homesrv: refresh ok\n");
 				s.offline = 0;
@@ -873,21 +893,81 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		// Clock-only partial refresh every 60s (no flash)
-		static time_t last_clock = 0;
-		if (s.data_loaded && now - last_clock >= 60) {
-			int ctop = 4;
-			pen(LUM_WHITE);
-			FBInkRect cr = { 0, 0,
-					 (unsigned short) s.screen_w, 80 };
-			fbink_cls(s.fbfd, &g_cfg_draw, &cr, false);
-			pen(LUM_WHITE);
-			render_clock_row(&s, ctop);
-			// Partial DU refresh (fast, no flash)
-			FBInkConfig duc = g_cfg_du;
-			duc.no_refresh = false;
-			fbink_refresh(s.fbfd, 0, 0, (unsigned) s.screen_w, 80, &duc);
-			last_clock = now;
+		// Clock partial refresh on minute boundaries
+		static int last_minute = -1;
+		if (s.data_loaded) {
+			struct tm tm_buf;
+			struct tm *tm = localtime_r(&now, &tm_buf);
+			int min = tm->tm_min;
+			if (last_minute != -1 && last_minute != min) {
+				int ctop = 40;
+				pen(LUM_WHITE);
+				FBInkRect cr = { 0, 0,
+						 (unsigned short) s.screen_w, 100 };
+				fbink_cls(s.fbfd, &g_cfg_draw, &cr, false);
+				pen(LUM_WHITE);
+				render_clock_row(&s, ctop);
+				FBInkConfig duc = g_cfg_du;
+				duc.no_refresh = false;
+				fbink_refresh(s.fbfd, 0, 0, (unsigned) s.screen_w, 100, &duc);
+			}
+			last_minute = min;
+		}
+
+		// Periodic connectivity check every 10s
+		static time_t last_conn_check = 0;
+		if (s.data_loaded && now - last_conn_check >= 10) {
+			struct HttpResponse pr;
+			int was_offline = s.offline;
+			if (http_get(s.server_url, "/api/ping.php", s.api_token,
+				     &pr) == 0 && pr.status == 200) {
+				s.offline = 0;
+				http_free_response(&pr);
+			} else {
+				s.offline = 1;
+			}
+			last_conn_check = now;
+			// Status changed — partial refresh bottom area
+			if (was_offline != s.offline) {
+				pen(LUM_WHITE);
+				FBInkRect cr = { 0,
+						 (unsigned short) (s.screen_h - 40),
+						 (unsigned short) s.screen_w, 40 };
+				fbink_cls(s.fbfd, &g_cfg_draw, &cr, false);
+				pen(LUM_WHITE);
+				// Re-render just the status line
+				char status[128];
+				struct tm ltm_buf;
+				struct tm *ltm = localtime_r(
+					&s.last_refresh_success, &ltm_buf);
+				char time_str[16];
+				strftime(time_str, sizeof(time_str),
+					 "%H:%M", ltm);
+				if (s.offline)
+					snprintf(status, sizeof(status),
+						 "Last refresh: %s  \u00B7 "
+						 "Offline",
+						 time_str);
+				else
+					snprintf(status, sizeof(status),
+						 "Last refresh: %s  \u00B7 "
+						 "Online",
+						 time_str);
+				FBInkOTConfig ots;
+				const struct Layout *l = &s.layout;
+				ot_setup(&ots, s.screen_h - 30,
+					 l->margin, 200,
+					 (unsigned) (l->font_meta - 2), false);
+				FBInkConfig sc = g_cfg_draw;
+				sc.fg_color = FG_GRAY6;
+				fbink_print_ot(s.fbfd, status, &ots, &sc,
+					       NULL);
+				FBInkConfig duc = g_cfg_du;
+				duc.no_refresh = false;
+				fbink_refresh(s.fbfd,
+					      (unsigned) (s.screen_h - 40), 0,
+					      (unsigned) s.screen_w, 40, &duc);
+			}
 		}
 
 		if (poll_rc < 0) { if (errno == EINTR) continue; break; }
