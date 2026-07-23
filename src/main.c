@@ -234,29 +234,33 @@ int render_weather(const struct AppState *s, int top)
 	if (!s->data_loaded || !s->data.has_weather) return top;
 	const struct Weather *w = &s->data.weather;
 
-	int temp_end, desc_end;
+	int temp_end, detail_end;
 
-	// Large temp — full width, no wrapping
+	// Icon + temp — centred, full width
 	ot_setup(&ot, top, l->margin, l->margin,
-		 (unsigned) l->font_temp, false);
-	snprintf(buf, sizeof(buf), "%s  %d\u00B0C",
+		 (unsigned) l->font_temp, true);
+	snprintf(buf, sizeof(buf), "%s  %d\u00B0",
 		 weather_icon(w->code), w->temperature);
 	ot_print_top(s->fbfd, buf, &ot, &temp_end);
 
-	// Description
-	ot_setup(&ot, temp_end + 2, l->margin, l->margin,
-		 (unsigned) l->font_detail, false);
+	// Single detail line: desc · rain% · humidity% — centred
 	snprintf(buf, sizeof(buf), "%s", w->description);
-	ot_print_top(s->fbfd, buf, &ot, &desc_end);
+	{
+		int blen = (int) strlen(buf);
+		snprintf(buf + blen, sizeof(buf) - (size_t) blen,
+			 " \u00B7 %d%% rain", w->rain_chance);
+	}
+	{
+		int blen = (int) strlen(buf);
+		snprintf(buf + blen, sizeof(buf) - (size_t) blen,
+			 " \u00B7 %d%% humidity", w->humidity);
+	}
+	ot_setup(&ot, temp_end + 2, l->margin, l->margin,
+		 (unsigned) l->font_detail, true);
+	ot_print_top(s->fbfd, buf, &ot, &detail_end);
 
-	// Rain
-	snprintf(buf, sizeof(buf), "Rain: \u2014");
-	ot_setup(&ot, desc_end + 2, l->margin, l->margin,
-		 (unsigned) l->font_detail, false);
-	ot_print_top(s->fbfd, buf, &ot, &desc_end);
-
-	fprintf(stderr, "homesrv: weather top=%d bottom=%d\n", top, desc_end);
-	return desc_end + 8;
+	fprintf(stderr, "homesrv: weather top=%d bottom=%d\n", top, detail_end);
+	return detail_end + 8;
 }
 
 int render_forecast(const struct AppState *s, int top)
@@ -308,7 +312,7 @@ int render_tasks(struct AppState *s, int top, int col_x, int col_w)
 
 	// Section header
 	ot_setup(&ot, y, col_x, col_rm, (unsigned) l->font_header, false);
-	snprintf(buf, sizeof(buf), "TASKS (%d)", s->data.task_count);
+	snprintf(buf, sizeof(buf), "TASKS");
 	ot_print_top(s->fbfd, buf, &ot, &y);
 	y += 6;
 
@@ -323,7 +327,11 @@ int render_tasks(struct AppState *s, int top, int col_x, int col_w)
 		ot_print_top(s->fbfd, t->title, &ot, &y);
 
 		// Meta
-		snprintf(buf, sizeof(buf), "%s", t->next_due);
+		int yr, mo, dy;
+		if (sscanf(t->next_due, "%d-%d-%d", &yr, &mo, &dy) == 3)
+			snprintf(buf, sizeof(buf), "%02d/%02d", dy, mo);
+		else
+			snprintf(buf, sizeof(buf), "%s", t->next_due);
 		if (t->due_time[0]) {
 			int bl = (int) strlen(buf);
 			snprintf(buf + bl, sizeof(buf) - (size_t) bl,
@@ -524,16 +532,17 @@ void render_modal(const struct AppState *s)
 void render_message(const struct AppState *s, const char *msg)
 {
 	const struct Layout *l = &s->layout;
+
+	pen(LUM_WHITE);
+	fbink_cls(s->fbfd, &g_cfg_draw, NULL, false);
+	pen(LUM_WHITE);
+
 	FBInkOTConfig ot;
 	ot_setup(&ot, s->screen_h / 2 - 20, l->margin, l->margin,
 		 (unsigned) l->font_err, true);
 	FBInkConfig mc = g_cfg_draw;
 	mc.no_refresh = false;
 	fbink_print_ot(s->fbfd, msg, &ot, &mc, NULL);
-
-	ot_setup(&ot, s->screen_h / 2 + 20, l->margin, l->margin,
-		 (unsigned) (l->font_err - 3), true);
-	fbink_print_ot(s->fbfd, "Tap top-right to exit", &ot, &mc, NULL);
 }
 
 void render_full_screen(struct AppState *s)
@@ -571,6 +580,24 @@ void render_full_screen(struct AppState *s)
 
 	fprintf(stderr, "homesrv: layout div_y=%d div_x=%d screen=%dx%d\n",
 		div_y, div_x, s->screen_w, s->screen_h);
+
+	// Bottom status: last refresh time + offline indicator
+	char status[128];
+	struct tm tm_buf;
+	struct tm *ltm = localtime_r(&s->last_refresh_success, &tm_buf);
+	char time_str[16];
+	strftime(time_str, sizeof(time_str), "%H:%M", ltm);
+	if (s->offline)
+		snprintf(status, sizeof(status),
+			 "Last refresh: %s \u00B7 Offline", time_str);
+	else
+		snprintf(status, sizeof(status), "Last refresh: %s", time_str);
+	FBInkOTConfig ots;
+	ot_setup(&ots, s->screen_h - 30, s->screen_w - 280, l->margin,
+		 (unsigned) (l->font_meta - 1), false);
+	FBInkConfig sc = g_cfg_draw;
+	sc.fg_color = FG_GRAY6;
+	fbink_print_ot(s->fbfd, status, &ots, &sc, NULL);
 
 	// Quit X, bottom-right
 	FBInkOTConfig otx;
@@ -663,9 +690,20 @@ static int fetch_dashboard(struct AppState *s)
 	char path[128];
 	snprintf(path, sizeof(path), "/api/dashboard.php");
 	struct HttpResponse resp;
-	if (http_get(s->server_url, path, s->api_token, &resp) < 0) return -1;
-	if (resp.status != 200) { http_free_response(&resp); return -1; }
+	if (http_get(s->server_url, path, s->api_token, &resp) < 0) {
+		fprintf(stderr, "homesrv: fetch failed (network error), "
+			"attempting wifi reconnect\n");
+		int rc = system(
+			"wpa_cli -i wlan0 reassociate 2>/dev/null &");
+		fprintf(stderr, "homesrv: wifi reconnect rc=%d\n", rc);
+		return -1;
+	}
+	if (resp.status != 200) {
+		fprintf(stderr, "homesrv: fetch failed (HTTP %d)\n", resp.status);
+		http_free_response(&resp); return -1;
+	}
 	if (json_parse_dashboard(resp.body, &s->data) < 0) {
+		fprintf(stderr, "homesrv: fetch failed (JSON parse error)\n");
 		http_free_response(&resp); return -1;
 	}
 	http_free_response(&resp);
@@ -743,6 +781,38 @@ int main(int argc, char *argv[])
 		has_touch = 1;
 	}
 
+	// Clear screen and show startup status
+	pen(LUM_WHITE);
+	fbink_cls(s.fbfd, &g_cfg_draw, NULL, false);
+	pen(LUM_WHITE);
+	render_message(&s, "Starting HomeSrv...");
+	fbink_refresh(s.fbfd, 0, 0, 0, 0, &g_cfg_flash);
+
+	// Ensure Wi-Fi is connected before first fetch
+	fprintf(stderr, "homesrv: checking wifi...\n");
+	for (int attempt = 0; attempt < 5; attempt++) {
+		struct HttpResponse pr;
+		if (http_get(s.server_url, "/api/ping.php", s.api_token, &pr) == 0
+		    && pr.status == 200) {
+			http_free_response(&pr);
+			fprintf(stderr, "homesrv: wifi ok (attempt %d)\n",
+				attempt + 1);
+			break;
+		}
+		fprintf(stderr, "homesrv: wifi not ready (attempt %d), "
+			"reconnecting...\n", attempt + 1);
+		{
+			char buf[128];
+			snprintf(buf, sizeof(buf),
+				 "Connecting to Wi-Fi... (attempt %d)",
+				 attempt + 1);
+			render_message(&s, buf);
+			fbink_refresh(s.fbfd, 0, 0, 0, 0, &g_cfg_flash);
+		}
+		system("wpa_cli -i wlan0 reassociate 2>/dev/null &");
+		sleep(5);
+	}
+
 	int conn_ok = (fetch_dashboard(&s) == 0);
 	if (!conn_ok) {
 		char buf[128];
@@ -753,6 +823,8 @@ int main(int argc, char *argv[])
 	}
 
 	if (s.data_loaded) {
+		s.offline = 0;
+		s.last_refresh_success = time(NULL);
 		render_full_screen(&s);
 		fbink_wait_for_complete(s.fbfd, LAST_MARKER);
 	}
@@ -765,13 +837,6 @@ int main(int argc, char *argv[])
 		int timeout = has_touch ? 1000 : 15000;
 		int poll_rc = poll(has_touch ? &pfd : NULL, has_touch ? 1 : 0, timeout);
 		time_t now = time(NULL);
-
-		static time_t last_hb = 0;
-		if (now - last_hb >= 30) {
-			fprintf(stderr, "homesrv: heartbeat t=%ld data=%d\n",
-				(long) now, s.data_loaded);
-			last_hb = now;
-		}
 
 		if (!s.data_loaded && now - s.last_refresh >= 15) {
 			conn_retries++;
@@ -789,14 +854,40 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		if (s.data_loaded && (now - s.last_refresh >= 900 || s.refresh_pending)) {
+		if (s.data_loaded && (now - s.last_refresh >= 1800 || s.refresh_pending)) {
+			fprintf(stderr, "homesrv: refreshing... (interval=%lds)\n",
+				(long) (now - s.last_refresh));
 			if (fetch_dashboard(&s) == 0) {
+				fprintf(stderr, "homesrv: refresh ok\n");
+				s.offline = 0;
+				s.last_refresh_success = now;
 				render_full_screen(&s);
 				fbink_wait_for_complete(s.fbfd, LAST_MARKER);
 				s.last_refresh = now;
 				s.refresh_pending = 0;
+			} else {
+				s.offline = 1;
+				render_full_screen(&s);
+				fbink_wait_for_complete(s.fbfd, LAST_MARKER);
 			}
 			continue;
+		}
+
+		// Clock-only partial refresh every 60s (no flash)
+		static time_t last_clock = 0;
+		if (s.data_loaded && now - last_clock >= 60) {
+			int ctop = 4;
+			pen(LUM_WHITE);
+			FBInkRect cr = { 0, 0,
+					 (unsigned short) s.screen_w, 80 };
+			fbink_cls(s.fbfd, &g_cfg_draw, &cr, false);
+			pen(LUM_WHITE);
+			render_clock_row(&s, ctop);
+			// Partial DU refresh (fast, no flash)
+			FBInkConfig duc = g_cfg_du;
+			duc.no_refresh = false;
+			fbink_refresh(s.fbfd, 0, 0, (unsigned) s.screen_w, 80, &duc);
+			last_clock = now;
 		}
 
 		if (poll_rc < 0) { if (errno == EINTR) continue; break; }

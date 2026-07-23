@@ -55,6 +55,8 @@ struct AppState {
 	char   modal_title[128];
 
 	time_t last_refresh;
+	time_t last_refresh_success;
+	int    offline;
 	int    refresh_pending;
 };
 

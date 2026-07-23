@@ -82,20 +82,15 @@ build/homesrv: $(SRCS) $(CJSON_DIR)/cJSON.c $(FBINK_DIR)/Release/libfbink.a
 	mkdir -p build
 	$(PODMAN_MAKE) inner-app
 
-dist: build/homesrv scripts/homesrv.sh nm/homesrv $(FONTS_DIR)/$(FONT_NAME) icons
+dist: build/homesrv scripts/homesrv.sh nm/homesrv $(FONTS_DIR)/$(FONT_NAME)
 	rm -rf dist
 	mkdir -p $(DIST_APP)/bin $(DIST_APP)/fonts $(DIST_NM)
-	mkdir -p $(DIST_APP)/icons
 	cp build/homesrv $(DIST_APP)/bin/homesrv
 	cp scripts/homesrv.sh $(DIST_APP)/homesrv.sh
 	cp $(FONTS_DIR)/$(FONT_NAME) $(DIST_APP)/fonts/
-	cp icons/*.png $(DIST_APP)/icons/
 	cp nm/homesrv $(DIST_NM)/homesrv
 	tar -czf dist/homesrv-kobo-$(VERSION).tgz -C dist .adds
 	@echo "dist/ staged; copy dist/.adds onto the Kobo or run 'make install'"
-
-icons:
-	python3 scripts/gen_icons.py icons
 
 install: dist
 	@test -d "$(KOBO_MOUNT)/.kobo" || \

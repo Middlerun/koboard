@@ -87,6 +87,8 @@ int json_parse_dashboard(const char *json, struct DashboardData *data)
 		struct Weather *w = &data->weather;
 		w->temperature = safe_int(cJSON_GetObjectItem(weather, "temperature"));
 		w->code        = safe_int(cJSON_GetObjectItem(weather, "code"));
+		w->humidity    = safe_int(cJSON_GetObjectItem(weather, "humidity"));
+		w->rain_chance = safe_int(cJSON_GetObjectItem(weather, "rain_chance"));
 		safe_str(w->description, sizeof(w->description),
 			 cJSON_GetStringValue(cJSON_GetObjectItem(weather, "description")));
 

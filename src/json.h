@@ -38,6 +38,8 @@ struct Weather {
 	int    temperature;
 	int    code;
 	char   description[32];
+	int    humidity;
+	int    rain_chance;
 	struct Forecast forecast[MAX_FORECAST];
 	int    forecast_count;
 };
