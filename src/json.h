@@ -36,6 +36,8 @@ struct Forecast {
 
 struct Weather {
 	int    temperature;
+	int    today_high;
+	int    today_low;
 	int    code;
 	char   description[32];
 	int    humidity;

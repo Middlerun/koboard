@@ -34,16 +34,13 @@ static void sig_handler(int sig) { (void) sig; g_running = 0; }
 
 void layout_compute(struct Layout *l, int sw, int sh)
 {
+	(void) sh;
 	memset(l, 0, sizeof(*l));
 	l->margin  = sw / 30;              if (l->margin  < 10) l->margin = 10;
 	l->gap     = l->margin;
 	l->col_half = (sw - 2 * l->margin - l->gap) / 2;
 	l->col_left = l->margin;
 	l->col_right = l->margin + l->col_half + l->gap;
-
-	l->modal_w = sw * 2 / 3;          if (l->modal_w > 700) l->modal_w = 700;
-	l->modal_h = sh / 3;              if (l->modal_h > 450) l->modal_h = 450;
-	l->modal_opt_h = l->modal_h / 7;
 
 	l->font_date   = 14;
 	l->font_temp   = 30;
@@ -55,22 +52,25 @@ void layout_compute(struct Layout *l, int sw, int sh)
 	l->font_btn    = 9;
 	l->font_evt    = 11;
 	l->font_evt_sub = 8;
-	l->font_modal  = 13;
 	l->font_err    = 14;
 }
 
 const char *weather_icon(int code)
 {
-	if (code <= 1)   return "\u2600";       // ☀
-	if (code == 2)   return "\u2600\u2601"; // ☀☁
-	if (code == 3)   return "\u2601";       // ☁
-	if (code <= 48)  return "~";
-	if (code <= 57)  return ".";
-	if (code <= 67)  return "\u2602";       // ☂
-	if (code <= 77)  return "\u2744";       // ❄
-	if (code <= 86)  return ";";
-	if (code <= 99)  return "\u26A1";       // ⚡
-	return "\u2600";
+	// WMO weather interpretation codes
+	// https://open-meteo.com/en/docs
+	if (code == 0)   return "\u2600";       // ☀ clear sky
+	if (code == 1)   return "\U0001F324";   // 🌤 mainly clear
+	if (code == 2)   return "\u26C5";       // ⛅ partly cloudy
+	if (code == 3)   return "\u2601";       // ☁ overcast
+	if (code <= 48)  return "\U0001F32B";   // 🌫 fog / rime fog
+	if (code <= 57)  return "\U0001F327";   // 🌧 drizzle / freezing drizzle
+	if (code <= 67)  return "\U0001F327";   // 🌧 rain / freezing rain
+	if (code <= 77)  return "\u2744";       // ❄ snow fall / snow grains
+	if (code <= 82)  return "\U0001F326";   // 🌦 rain showers
+	if (code <= 86)  return "\U0001F328";   // 🌨 snow showers
+	if (code <= 99)  return "\u26C8";       // ⛈ thunderstorm / thunderstorm with hail
+	return "?";                             // Unknown
 }
 
 int load_config(struct AppState *state)
@@ -158,12 +158,21 @@ void ot_setup(FBInkOTConfig *ot, int top, int left, int right,
 
 int ot_print(int fbfd, const char *text, FBInkOTConfig *ot)
 {
-	return fbink_print_ot(fbfd, text, ot, &g_cfg_draw, NULL);
+	// FBInk reads is_centered from fbink_cfg when non-NULL,
+	// not from the OT config. Mirror it so centering works.
+	bool was = g_cfg_draw.is_centered;
+	g_cfg_draw.is_centered = ot->is_centered;
+	int rv = fbink_print_ot(fbfd, text, ot, &g_cfg_draw, NULL);
+	g_cfg_draw.is_centered = was;
+	return rv;
 }
 
 int ot_print_top(int fbfd, const char *text, FBInkOTConfig *ot, int *top)
 {
+	bool was = g_cfg_draw.is_centered;
+	g_cfg_draw.is_centered = ot->is_centered;
 	int new_top = fbink_print_ot(fbfd, text, ot, &g_cfg_draw, NULL);
+	g_cfg_draw.is_centered = was;
 	if (new_top < 0) return new_top;
 	if (top) *top = new_top;
 	return 0;
@@ -243,17 +252,23 @@ int render_weather(const struct AppState *s, int top)
 		 weather_icon(w->code), w->temperature);
 	ot_print_top(s->fbfd, buf, &ot, &temp_end);
 
-	// Single detail line: desc · rain% · humidity% — centred
+	// Single detail line: desc · hi/lo · rain% · humidity%
 	snprintf(buf, sizeof(buf), "%s", w->description);
 	{
 		int blen = (int) strlen(buf);
 		snprintf(buf + blen, sizeof(buf) - (size_t) blen,
-			 " \u00B7 %d%% rain", w->rain_chance);
+			 " \u00B7 %d\u00B0/%d\u00B0",
+			 w->today_high, w->today_low);
 	}
 	{
 		int blen = (int) strlen(buf);
 		snprintf(buf + blen, sizeof(buf) - (size_t) blen,
-			 " \u00B7 %d%% humidity", w->humidity);
+			 " \u00B7 \u2602%d%%", w->rain_chance);
+	}
+	{
+		int blen = (int) strlen(buf);
+		snprintf(buf + blen, sizeof(buf) - (size_t) blen,
+			 " \u00B7 \U0001F4A7%d%%", w->humidity);
 	}
 	ot_setup(&ot, temp_end + 2, l->margin, l->margin,
 		 (unsigned) l->font_detail, true);
@@ -350,14 +365,28 @@ int render_tasks(struct AppState *s, int top, int col_x, int col_w)
 		ot_setup(&ot, y + 2, text_x, col_rm, (unsigned) l->font_meta, false);
 		ot_print_top(s->fbfd, buf, &ot, &y);
 
-		// Buttons — Done on left, Defer on right side of column
+		// Done button
 		y += 4;
-		ot_setup(&ot, y, text_x, col_rm, (unsigned) l->font_btn, false);
-		ot_print(s->fbfd, "Done", &ot);
+		s->task_button_y[s->task_count] = y;
 
-		int defer_x = col_x + col_w * 3 / 4;
-		ot_setup(&ot, y, defer_x, l->margin, (unsigned) l->font_btn, false);
-		ot_print(s->fbfd, "Defer", &ot);
+		// Button background: dark filled box
+		int btn_w = col_w * 2 / 3;
+		if (btn_w > 200) btn_w = 200;
+		int btn_x = text_x;
+		int btn_h = l->font_btn * 4 + 4;
+		pen(LUM_DARK);
+		FBInkRect br = { (unsigned short) btn_x, (unsigned short) y,
+				 (unsigned short) btn_w, (unsigned short) btn_h };
+		fbink_cls(s->fbfd, &g_cfg_draw, &br, false);
+		pen(LUM_WHITE);
+
+		// White text on dark background
+		ot_setup(&ot, y + 2, btn_x,
+			 s->screen_w - (btn_x + btn_w),
+			 (unsigned) l->font_btn, true);
+		FBInkConfig tc = g_cfg_draw;
+		tc.fg_color = FG_WHITE;
+		fbink_print_ot(s->fbfd, "Done", &ot, &tc, NULL);
 
 		y += l->gap + 20;
 
@@ -468,68 +497,6 @@ int render_calendar(const struct AppState *s, int top, int col_x, int col_w)
 	return y;
 }
 
-void render_modal(const struct AppState *s)
-{
-	const struct Layout *l = &s->layout;
-	int mx = (s->screen_w - l->modal_w) / 2;
-	int my = (s->screen_h - l->modal_h) / 2;
-
-	FBInkConfig mc = g_cfg_draw;
-	mc.no_refresh = false;
-	mc.wfm_mode   = WFM_DU;
-
-	FBInkRect mr = { (unsigned short) mx, (unsigned short) my,
-			 (unsigned short) l->modal_w,
-			 (unsigned short) l->modal_h };
-	pen(LUM_WHITE);
-	fbink_cls(s->fbfd, &mc, &mr, false);
-
-	FBInkRect rt = { (unsigned short) mx, (unsigned short) my,
-			 (unsigned short) l->modal_w, 4 };
-	FBInkRect rb = { (unsigned short) mx,
-			 (unsigned short) (my + l->modal_h - 4),
-			 (unsigned short) l->modal_w, 4 };
-	FBInkRect rl = { (unsigned short) mx, (unsigned short) my,
-			 4, (unsigned short) l->modal_h };
-	FBInkRect rr = { (unsigned short) (mx + l->modal_w - 4),
-			 (unsigned short) my,
-			 4, (unsigned short) l->modal_h };
-	pen(LUM_BLACK);
-	fbink_cls(s->fbfd, &mc, &rt, false);
-	fbink_cls(s->fbfd, &mc, &rb, false);
-	fbink_cls(s->fbfd, &mc, &rl, false);
-	fbink_cls(s->fbfd, &mc, &rr, false);
-	pen(LUM_WHITE);
-
-	FBInkOTConfig ot;
-	ot_setup(&ot, my + 14, mx + l->margin,
-		 s->screen_w - mx - l->modal_w + l->margin,
-		 (unsigned) l->font_header, false);
-	char buf[256];
-	snprintf(buf, sizeof(buf), "Defer: %s", s->modal_title);
-	ot_print(s->fbfd, buf, &ot);
-
-	// First option leaves room for up to 2 lines of heading
-	static const char *options[] = {"1 day","2 days","4 days","1 week", NULL};
-	for (int i = 0; options[i]; i++) {
-		int oy = my + 110 + i * 60;
-		ot_setup(&ot, oy, mx + l->margin * 2,
-			 s->screen_w - mx - l->modal_w + l->margin * 2,
-			 (unsigned) l->font_modal, false);
-		snprintf(buf, sizeof(buf), "[ %s ]", options[i]);
-		ot_print(s->fbfd, buf, &ot);
-	}
-
-	int cy = my + 370;
-	ot_setup(&ot, cy, mx + l->margin * 2,
-		 s->screen_w - mx - l->modal_w + l->margin * 2,
-		 (unsigned) l->font_btn, true);
-	ot_print(s->fbfd, "[ Close ]", &ot);
-
-	fbink_refresh(s->fbfd, (unsigned short) my, (unsigned short) mx,
-		      (unsigned short) l->modal_w, (unsigned short) l->modal_h, &mc);
-}
-
 void render_message(const struct AppState *s, const char *msg)
 {
 	const struct Layout *l = &s->layout;
@@ -560,7 +527,7 @@ void render_full_screen(struct AppState *s)
 	y += 20;
 
 	y = render_weather(s, y);
-	y += 20;
+	y += 40;
 
 	y = render_forecast(s, y);
 	y += 30;
@@ -651,32 +618,17 @@ int task_index_from_y(int touch_y, const int *card_bottoms,
 	return -1;
 }
 
-int modal_option_from_y(int touch_y, int screen_h, int modal_h)
-{
-	int my = (screen_h - modal_h) / 2;
-	for (int i = 0; i < 4; i++) {
-		int oy = my + 110 + i * 60;
-		if (touch_y >= oy - 10 && touch_y <= oy + 50)
-			return i;
-	}
-	int cy = my + 370;
-	if (touch_y >= cy - 10 && touch_y <= cy + 50) return 4;
-	return -1;
-}
-
 int col_from_x(int touch_x, int screen_w)
 {
 	return (touch_x < screen_w / 2) ? 0 : 1;
 }
 
-int button_hit(int touch_x, int touch_y, int card_bottom,
+int button_hit(int touch_x, int touch_y, int button_y,
 		int col_x)
 {
-	int btn_top = card_bottom - 36;
-	if (touch_y < btn_top || touch_y > card_bottom) return 0;
-	// Done: left third of column, Defer: right third
+	int btn_top = button_y;
+	if (touch_y < btn_top || touch_y > btn_top + 28) return 0;
 	if (touch_x > col_x && touch_x < col_x + 160) return 1;   // Done
-	if (touch_x > col_x + 340 && touch_x < col_x + 500) return 2; // Defer
 	return 0;
 }
 
@@ -731,31 +683,36 @@ static int api_complete(struct AppState *s, int task_id)
 	return 0;
 }
 
-static int api_defer(struct AppState *s, int task_id, const char *new_due)
+static void render_task_completed(struct AppState *s, int idx)
 {
-	char path[128]; snprintf(path, sizeof(path), "/api/tasks/defer.php");
-	char post[256]; snprintf(post, sizeof(post), "task_id=%d&new_due=%s", task_id, new_due);
-	struct HttpResponse resp;
-	if (http_post(s->server_url, path, s->api_token, post, &resp) < 0) {
-		fprintf(stderr, "homesrv: defer id=%d failed (network error)\n", task_id);
-		return -1;
-	}
-	if (resp.status != 200) {
-		fprintf(stderr, "homesrv: defer id=%d failed (HTTP %d)\n", task_id, resp.status);
-		http_free_response(&resp); return -1;
-	}
-	fprintf(stderr, "homesrv: defer id=%d ok\n", task_id);
-	http_free_response(&resp);
-	return 0;
-}
+	const struct Layout *l = &s->layout;
+	int button_y = s->task_button_y[idx];
+	int card_bottom = s->task_card_bottom[idx];
 
-static void compute_defer_date(int days, char *buf, size_t bufsz)
-{
-	time_t now = time(NULL);
-	now += (time_t) (days * 86400);
-	struct tm tm_buf;
-	struct tm *tm = localtime_r(&now, &tm_buf);
-	strftime(buf, bufsz, "%Y-%m-%d", tm);
+	// Clear from button area down to card bottom
+	pen(LUM_WHITE);
+	FBInkRect cr = { (unsigned short) l->col_left,
+			 (unsigned short) button_y,
+			 (unsigned short) l->col_half,
+			 (unsigned short) (card_bottom - button_y) };
+	FBInkConfig mc = g_cfg_draw;
+	mc.wfm_mode = WFM_DU;
+	mc.no_refresh = false;
+	fbink_cls(s->fbfd, &mc, &cr, false);
+	pen(LUM_WHITE);
+
+	// "TASK COMPLETED!" in dark text, centred in the cleared area
+	FBInkOTConfig ot;
+	int mid_y = button_y + (card_bottom - button_y) / 2 - 6;
+	ot_setup(&ot, mid_y, l->col_left,
+		 l->margin,
+		 (unsigned) l->font_btn, true);
+	fbink_print_ot(s->fbfd, "TASK COMPLETED!", &ot, &mc, NULL);
+
+	fbink_refresh(s->fbfd, (unsigned short) button_y,
+		      (unsigned short) l->col_left,
+		      (unsigned short) l->col_half,
+		      (unsigned short) (card_bottom - button_y), &mc);
 }
 
 // ---- main ----
@@ -1012,30 +969,6 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		if (s.modal_open) {
-			int opt = modal_option_from_y(sy, s.screen_h, s.layout.modal_h);
-			if (opt < 0) continue;
-			if (opt == 4) {
-				s.modal_open = 0;
-				render_full_screen(&s);
-				fbink_wait_for_complete(s.fbfd, LAST_MARKER);
-				s.last_refresh = time(NULL);
-				continue;
-			}
-			int days[] = {1, 2, 4, 7};
-			char new_due[16];
-			compute_defer_date(days[opt], new_due, sizeof(new_due));
-			if (api_defer(&s, s.modal_task_id, new_due) == 0) {
-				s.modal_open = 0;
-				s.refresh_pending = 1;
-			}
-			s.modal_open = 0;
-			render_full_screen(&s);
-			fbink_wait_for_complete(s.fbfd, LAST_MARKER);
-			s.last_refresh = time(NULL);
-			continue;
-		}
-
 		int col = col_from_x(sx, s.screen_w);
 		if (col == 0) {
 			int idx = task_index_from_y(sy, s.task_card_bottom,
@@ -1048,18 +981,14 @@ int main(int argc, char *argv[])
 			const struct Task *t = &s.data.tasks[idx];
 
 			int btn = button_hit(sx, sy,
-					    s.task_card_bottom[idx],
+					    s.task_button_y[idx],
 					    s.layout.col_left);
 			if (btn == 1) {
 				fprintf(stderr, "homesrv: done id=%d\n", t->id);
-				if (api_complete(&s, t->id) == 0) s.refresh_pending = 1;
-			} else if (btn == 2) {
-				fprintf(stderr, "homesrv: defer id=%d\n", t->id);
-				s.modal_open = 1;
-				s.modal_task_id = t->id;
-				snprintf(s.modal_title, sizeof(s.modal_title), "%s", t->title);
-				render_modal(&s);
-				fbink_wait_for_complete(s.fbfd, LAST_MARKER);
+				render_task_completed(&s, idx);
+				sleep(2);
+				if (api_complete(&s, t->id) == 0)
+					s.refresh_pending = 1;
 			}
 		}
 	}

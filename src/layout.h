@@ -11,9 +11,6 @@ struct Layout {
 	int col_half;
 	int col_left;
 	int col_right;
-	int modal_w;
-	int modal_h;
-	int modal_opt_h;
 	int font_date;
 	int font_temp;
 	int font_detail;
@@ -24,7 +21,6 @@ struct Layout {
 	int font_btn;
 	int font_evt;
 	int font_evt_sub;
-	int font_modal;
 	int font_err;
 };
 
@@ -44,15 +40,12 @@ struct AppState {
 	int    screen_h;
 	int    column_y;
 	int    task_card_bottom[MAX_TASKS];
+	int    task_button_y[MAX_TASKS];
 	int    task_count;
 	struct Layout layout;
 
 	struct DashboardData data;
 	int    data_loaded;
-
-	int    modal_open;
-	int    modal_task_id;
-	char   modal_title[128];
 
 	time_t last_refresh;
 	time_t last_refresh_success;
@@ -67,9 +60,8 @@ int  render_weather(const struct AppState *s, int top);
 int  render_forecast(const struct AppState *s, int top);
 int  render_tasks(struct AppState *s, int top, int col_x, int col_w);
 int  render_calendar(const struct AppState *s, int top, int col_x, int col_w);
-void render_modal(const struct AppState *s);
-void render_message(const struct AppState *s, const char *msg);
 void render_full_screen(struct AppState *s);
+void render_message(const struct AppState *s, const char *msg);
 
 int  init_display(struct AppState *s);
 void ot_setup(FBInkOTConfig *ot, int top, int left, int right,
@@ -83,9 +75,8 @@ int  init_touch(const char *dev_path);
 
 int  task_index_from_y(int touch_y, const int *card_bottoms,
 		       int tasks_top, int task_count);
-int  modal_option_from_y(int touch_y, int screen_h, int modal_h);
 int  col_from_x(int touch_x, int screen_w);
-int  button_hit(int touch_x, int touch_y, int card_bottom, int col_x);
+int  button_hit(int touch_x, int touch_y, int button_y, int col_x);
 int  quit_hit(int touch_x, int touch_y, int screen_w, int screen_h);
 
 #endif
