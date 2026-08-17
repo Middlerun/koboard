@@ -173,7 +173,9 @@ int ot_print_top(int fbfd, const char *text, FBInkOTConfig *ot, int *top)
 	g_cfg_draw.is_centered = ot->is_centered;
 	int new_top = fbink_print_ot(fbfd, text, ot, &g_cfg_draw, NULL);
 	g_cfg_draw.is_centered = was;
-	if (new_top < 0) return new_top;
+	// fbink_print_ot returns 0 when there is no room left to print
+	// (and a negative value on error); never treat that as a valid cursor.
+	if (new_top <= 0) return -1;
 	if (top) *top = new_top;
 	return 0;
 }
@@ -181,6 +183,11 @@ int ot_print_top(int fbfd, const char *text, FBInkOTConfig *ot, int *top)
 static void pen(uint8_t gray)
 {
 	fbink_set_bg_pen_gray(gray, false, false);
+}
+
+static void fpen(uint8_t gray)
+{
+	fbink_set_fg_pen_gray(gray, false, false);
 }
 
 void draw_divider(int fbfd, int y, int x1, int x2, uint8_t gray)
@@ -328,18 +335,19 @@ int render_tasks(struct AppState *s, int top, int col_x, int col_w)
 	// Section header
 	ot_setup(&ot, y, col_x, col_rm, (unsigned) l->font_header, false);
 	snprintf(buf, sizeof(buf), "TASKS");
-	ot_print_top(s->fbfd, buf, &ot, &y);
+	if (ot_print_top(s->fbfd, buf, &ot, &y) < 0) return y;
 	y += 6;
 
 	s->task_count = 0;
+	int max_y = s->screen_h - 55;
 
-	for (int i = 0; i < s->data.task_count; i++) {
+	for (int i = 0; i < s->data.task_count && y < max_y; i++) {
 		const struct Task *t = &s->data.tasks[i];
 		int text_x = col_x;
 
 		// Title
 		ot_setup(&ot, y, text_x, col_rm, (unsigned) l->font_title, false);
-		ot_print_top(s->fbfd, t->title, &ot, &y);
+		if (ot_print_top(s->fbfd, t->title, &ot, &y) < 0) return y;
 
 		// Meta
 		int yr, mo, dy;
@@ -363,7 +371,7 @@ int render_tasks(struct AppState *s, int top, int col_x, int col_w)
 				 " \u00B7 %s", t->recur_type);
 		}
 		ot_setup(&ot, y + 2, text_x, col_rm, (unsigned) l->font_meta, false);
-		ot_print_top(s->fbfd, buf, &ot, &y);
+		if (ot_print_top(s->fbfd, buf, &ot, &y) < 0) return y;
 
 		// Done button
 		y += 4;
@@ -378,15 +386,15 @@ int render_tasks(struct AppState *s, int top, int col_x, int col_w)
 		FBInkRect br = { (unsigned short) btn_x, (unsigned short) y,
 				 (unsigned short) btn_w, (unsigned short) btn_h };
 		fbink_cls(s->fbfd, &g_cfg_draw, &br, false);
-		pen(LUM_WHITE);
 
-		// White text on dark background
+		// White text on dark background (match text bg to button)
+		fpen(LUM_WHITE);
 		ot_setup(&ot, y + 2, btn_x,
 			 s->screen_w - (btn_x + btn_w),
 			 (unsigned) l->font_btn, true);
-		FBInkConfig tc = g_cfg_draw;
-		tc.fg_color = FG_WHITE;
-		fbink_print_ot(s->fbfd, "Done", &ot, &tc, NULL);
+		ot_print(s->fbfd, "Done", &ot);
+		fpen(LUM_BLACK);
+		pen(LUM_WHITE);
 
 		y += l->gap + 20;
 
@@ -407,6 +415,7 @@ int render_calendar(const struct AppState *s, int top, int col_x, int col_w)
 	int y = top;
 	int col_rm = s->screen_w - (col_x + col_w - l->margin);
 	int has_today = 0, has_tomorrow = 0;
+	int max_y = s->screen_h - 55;
 
 	for (int i = 0; i < s->data.event_count; i++) {
 		if (s->data.events[i].is_today) has_today = 1;
@@ -414,16 +423,18 @@ int render_calendar(const struct AppState *s, int top, int col_x, int col_w)
 	}
 
 	ot_setup(&ot, y, col_x, col_rm, (unsigned) l->font_header, false);
-	ot_print_top(s->fbfd, "TODAY", &ot, &y);
+	if (ot_print_top(s->fbfd, "TODAY", &ot, &y) < 0) return y;
 	y += 6;
 
 	if (!has_today) {
 		ot_setup(&ot, y, col_x, col_rm, (unsigned) l->font_meta, false);
-		ot_print_top(s->fbfd, "Nothing scheduled", &ot, &y);
+		if (ot_print_top(s->fbfd, "Nothing scheduled", &ot, &y) < 0)
+			return y;
 		y += l->margin;
 	}
 
-	for (int i = 0; i < s->data.event_count; i++) {
+	int shown = 0;
+	for (int i = 0; i < s->data.event_count && y < max_y; i++) {
 		const struct CalendarEvent *e = &s->data.events[i];
 		if (!e->is_today) continue;
 
@@ -432,65 +443,90 @@ int render_calendar(const struct AppState *s, int top, int col_x, int col_w)
 		int time_w = col_w / 5;
 		const char *time_text = e->all_day ? "All day" : e->time_str;
 
-		int yt, ys;
+		int yt = y, ys = y;
 		ot_setup(&ot, row_y, time_x,
 			 s->screen_w - time_x - time_w,
 			 (unsigned) l->font_evt, false);
-		ot_print_top(s->fbfd, time_text, &ot, &yt);
+		if (ot_print_top(s->fbfd, time_text, &ot, &yt) < 0) return y;
 
 		int summary_x = time_x + time_w + l->gap;
 		ot_setup(&ot, row_y, summary_x, col_rm,
 			 (unsigned) l->font_evt, false);
-		ot_print_top(s->fbfd, e->summary, &ot, &ys);
+		if (ot_print_top(s->fbfd, e->summary, &ot, &ys) < 0) return y;
 
-		y = (yt > ys) ? yt : ys;
+		int row_bottom = (yt > ys) ? yt : ys;
 
 		snprintf(buf, sizeof(buf), "\u2014 %s", e->feed_name);
-		ot_setup(&ot, y + 2, summary_x + l->margin, col_rm,
+		ot_setup(&ot, ys + 2, summary_x + l->margin, col_rm,
 			 (unsigned) l->font_evt_sub, false);
-		ot_print_top(s->fbfd, buf, &ot, &y);
+		if (ot_print_top(s->fbfd, buf, &ot, &y) < 0) return y;
+
+		if (row_bottom > y) y = row_bottom;
 
 		y += l->gap;
+		shown++;
 	}
-
-	y += l->gap;
-	ot_setup(&ot, y, col_x, col_rm, (unsigned) l->font_header, false);
-	ot_print_top(s->fbfd, "TOMORROW", &ot, &y);
-	y += 6;
-
-	if (!has_tomorrow) {
+	if (shown < has_today) {
+		snprintf(buf, sizeof(buf), "\u2026 +%d more",
+			 has_today - shown);
 		ot_setup(&ot, y, col_x, col_rm, (unsigned) l->font_meta, false);
-		ot_print_top(s->fbfd, "Nothing scheduled", &ot, &y);
+		if (ot_print_top(s->fbfd, buf, &ot, &y) < 0) return y;
+		y += l->gap;
 	}
 
-	for (int i = 0; i < s->data.event_count; i++) {
-		const struct CalendarEvent *e = &s->data.events[i];
-		if (e->is_today) continue;
-
-		int row_y = y;
-		int time_x = col_x;
-		int time_w = col_w / 5;
-		const char *time_text = e->all_day ? "All day" : e->time_str;
-
-		int yt, ys;
-		ot_setup(&ot, row_y, time_x,
-			 s->screen_w - time_x - time_w,
-			 (unsigned) l->font_evt, false);
-		ot_print_top(s->fbfd, time_text, &ot, &yt);
-
-		int summary_x = time_x + time_w + l->gap;
-		ot_setup(&ot, row_y, summary_x, col_rm,
-			 (unsigned) l->font_evt, false);
-		ot_print_top(s->fbfd, e->summary, &ot, &ys);
-
-		y = (yt > ys) ? yt : ys;
-
-		snprintf(buf, sizeof(buf), "\u2014 %s", e->feed_name);
-		ot_setup(&ot, y + 2, summary_x + l->margin, col_rm,
-			 (unsigned) l->font_evt_sub, false);
-		ot_print_top(s->fbfd, buf, &ot, &y);
-
+	if (y < max_y) {
 		y += l->gap;
+		ot_setup(&ot, y, col_x, col_rm, (unsigned) l->font_header, false);
+		if (ot_print_top(s->fbfd, "TOMORROW", &ot, &y) < 0) return y;
+		y += 6;
+
+		if (!has_tomorrow) {
+			ot_setup(&ot, y, col_x, col_rm, (unsigned) l->font_meta, false);
+			if (ot_print_top(s->fbfd, "Nothing scheduled", &ot, &y) < 0)
+				return y;
+		}
+
+		int shown_t = 0;
+		for (int i = 0; i < s->data.event_count && y < max_y; i++) {
+			const struct CalendarEvent *e = &s->data.events[i];
+			if (e->is_today) continue;
+
+			int row_y = y;
+			int time_x = col_x;
+			int time_w = col_w / 5;
+			const char *time_text = e->all_day ? "All day" : e->time_str;
+
+			int yt = y, ys = y;
+			ot_setup(&ot, row_y, time_x,
+				 s->screen_w - time_x - time_w,
+				 (unsigned) l->font_evt, false);
+			if (ot_print_top(s->fbfd, time_text, &ot, &yt) < 0)
+				return y;
+
+			int summary_x = time_x + time_w + l->gap;
+			ot_setup(&ot, row_y, summary_x, col_rm,
+				 (unsigned) l->font_evt, false);
+			if (ot_print_top(s->fbfd, e->summary, &ot, &ys) < 0)
+				return y;
+
+			int row_bottom = (yt > ys) ? yt : ys;
+
+			snprintf(buf, sizeof(buf), "\u2014 %s", e->feed_name);
+			ot_setup(&ot, ys + 2, summary_x + l->margin, col_rm,
+				 (unsigned) l->font_evt_sub, false);
+			if (ot_print_top(s->fbfd, buf, &ot, &y) < 0) return y;
+
+			if (row_bottom > y) y = row_bottom;
+
+			y += l->gap;
+			shown_t++;
+		}
+		if (shown_t < has_tomorrow) {
+			snprintf(buf, sizeof(buf), "\u2026 +%d more",
+				 has_tomorrow - shown_t);
+			ot_setup(&ot, y, col_x, col_rm, (unsigned) l->font_meta, false);
+			if (ot_print_top(s->fbfd, buf, &ot, &y) < 0) return y;
+		}
 	}
 
 	fprintf(stderr, "homesrv: calendar top=%d bottom=%d\n", top, y);

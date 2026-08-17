@@ -19,6 +19,7 @@ static int safe_int(const cJSON *item)
 	if (!item) return 0;
 	if (cJSON_IsNumber(item)) return item->valueint;
 	if (cJSON_IsString(item)) return atoi(item->valuestring);
+	if (cJSON_IsBool(item)) return cJSON_IsTrue(item) ? 1 : 0;
 	return 0;
 }
 
