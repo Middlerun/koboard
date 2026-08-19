@@ -24,6 +24,7 @@ struct CalendarEvent {
 	char   feed_name[64];
 	int    all_day;
 	int    is_today;
+	int    is_over;
 };
 
 struct Forecast {

@@ -31,6 +31,7 @@ static void sig_handler(int sig) { (void) sig; g_running = 0; }
 #define LUM_MED     128
 #define LUM_LIGHT   192
 #define LUM_WHITE   255
+#define LUM_OVER    96
 
 void layout_compute(struct Layout *l, int sw, int sh)
 {
@@ -190,6 +191,22 @@ static void fpen(uint8_t gray)
 	fbink_set_fg_pen_gray(gray, false, false);
 }
 
+// Truncate src to at most max_bytes, avoiding splitting a UTF-8 sequence,
+// and append an ellipsis if anything was cut off.
+static void truncate_ellipsis(char *dst, size_t dstsize, const char *src,
+			      size_t max_bytes)
+{
+	size_t len = strlen(src);
+	if (len <= max_bytes) {
+		snprintf(dst, dstsize, "%s", src);
+		return;
+	}
+	size_t cut = max_bytes;
+	while (cut > 0 && ((unsigned char) src[cut] & 0xC0) == 0x80)
+		cut--;
+	snprintf(dst, dstsize, "%.*s\u2026", (int) cut, src);
+}
+
 void draw_divider(int fbfd, int y, int x1, int x2, uint8_t gray)
 {
 	pen(gray);
@@ -324,13 +341,82 @@ int render_forecast(const struct AppState *s, int top)
 	return max_end + 8;
 }
 
+// Days from "today" (date_iso, YYYY-MM-DD) to next_due. Positive = future,
+// negative = past, 0 = today.
+static int days_from_today(const char *date_iso, const char *next_due)
+{
+	struct tm t0 = { 0 }, t1 = { 0 };
+	int y, m, d;
+	if (sscanf(date_iso, "%d-%d-%d", &y, &m, &d) != 3) return 0;
+	t0.tm_year = y - 1900; t0.tm_mon = m - 1; t0.tm_mday = d; t0.tm_hour = 12;
+	if (sscanf(next_due, "%d-%d-%d", &y, &m, &d) != 3) return 0;
+	t1.tm_year = y - 1900; t1.tm_mon = m - 1; t1.tm_mday = d; t1.tm_hour = 12;
+	time_t a = mktime(&t0), b = mktime(&t1);
+	if (a == (time_t) -1 || b == (time_t) -1) return 0;
+	return (int) (difftime(b, a) / 86400.0);
+}
+
+// Full weekday name ("Tuesday") for a YYYY-MM-DD date, or -1 on failure.
+static int weekday_name(const char *date_iso, char *buf, size_t bufsz)
+{
+	struct tm tm_buf = { 0 };
+	int y, m, d;
+	if (sscanf(date_iso, "%d-%d-%d", &y, &m, &d) != 3) return -1;
+	tm_buf.tm_year = y - 1900; tm_buf.tm_mon = m - 1; tm_buf.tm_mday = d;
+	tm_buf.tm_hour = 12;
+	if (mktime(&tm_buf) == (time_t) -1) return -1;
+	strftime(buf, bufsz, "%A", &tm_buf);
+	return 0;
+}
+
+// Build the human-friendly due-date label ("Due today", "Due on Tuesday",
+// "Was due on 05/09", ...).
+static void format_due_label(const struct AppState *s, const struct Task *t,
+			     char *buf, size_t bufsz)
+{
+	int diff = days_from_today(s->data.date_iso, t->next_due);
+	int yr, mo, dy;
+	int has_date = sscanf(t->next_due, "%d-%d-%d", &yr, &mo, &dy) == 3;
+
+	if (diff == 0) {
+		snprintf(buf, bufsz, "Due today");
+		return;
+	}
+	if (diff == -1) {
+		snprintf(buf, bufsz, "Was due yesterday");
+		return;
+	}
+	if (diff > 0 && diff < 4) {
+		char wd[16];
+		if (weekday_name(t->next_due, wd, sizeof(wd)) == 0)
+			snprintf(buf, bufsz, "Due on %s", wd);
+		else
+			snprintf(buf, bufsz, "Due on %02d/%02d", dy, mo);
+		return;
+	}
+	if (diff < 0 && diff > -4) {
+		char wd[16];
+		if (weekday_name(t->next_due, wd, sizeof(wd)) == 0)
+			snprintf(buf, bufsz, "Was due on %s", wd);
+		else
+			snprintf(buf, bufsz, "Was due on %02d/%02d", dy, mo);
+		return;
+	}
+	if (has_date)
+		snprintf(buf, bufsz, diff > 0 ? "Due on %02d/%02d"
+					     : "Was due on %02d/%02d", dy, mo);
+	else
+		snprintf(buf, bufsz, diff > 0 ? "Due on %s" : "Was due on %s",
+			 t->next_due);
+}
+
 int render_tasks(struct AppState *s, int top, int col_x, int col_w)
 {
 	const struct Layout *l = &s->layout;
 	FBInkOTConfig ot;
 	char buf[256];
 	int y = top;
-	int col_rm = s->screen_w - (col_x + col_w - l->margin);
+	int col_rm = s->screen_w - (col_x + col_w);
 
 	// Section header
 	ot_setup(&ot, y, col_x, col_rm, (unsigned) l->font_header, false);
@@ -350,11 +436,7 @@ int render_tasks(struct AppState *s, int top, int col_x, int col_w)
 		if (ot_print_top(s->fbfd, t->title, &ot, &y) < 0) return y;
 
 		// Meta
-		int yr, mo, dy;
-		if (sscanf(t->next_due, "%d-%d-%d", &yr, &mo, &dy) == 3)
-			snprintf(buf, sizeof(buf), "%02d/%02d", dy, mo);
-		else
-			snprintf(buf, sizeof(buf), "%s", t->next_due);
+		format_due_label(s, t, buf, sizeof(buf));
 		if (t->due_time[0]) {
 			int bl = (int) strlen(buf);
 			snprintf(buf + bl, sizeof(buf) - (size_t) bl,
@@ -407,13 +489,77 @@ int render_tasks(struct AppState *s, int top, int col_x, int col_w)
 	return y;
 }
 
+// Render a single calendar event. Returns 0 on success, -1 if there is no
+// room left. Events already over are drawn dimmed and truncated to one line;
+// other events are truncated to three lines. All truncation adds an ellipsis.
+static int render_event(const struct AppState *s, const struct CalendarEvent *e,
+			int col_x, int col_w, int *y)
+{
+	const struct Layout *l = &s->layout;
+	FBInkOTConfig ot;
+	char buf[256];
+	int col_rm = s->screen_w - (col_x + col_w);
+	int row_y = *y;
+	int time_x = col_x;
+	// Enough for "12:00pm" at the normal event font size (11pt).
+	int time_w = col_w * 3 / 8;
+	const char *time_text = e->all_day ? "All day" : e->time_str;
+	int font_main = e->is_over ? l->font_evt_sub : l->font_evt;
+	int max_lines = e->is_over ? 1 : 3;
+
+	int yt = row_y, ys = row_y;
+
+	if (e->is_over) fpen(LUM_OVER);
+
+	ot_setup(&ot, row_y, time_x, s->screen_w - time_x - time_w,
+		 (unsigned) font_main, false);
+	if (ot_print_top(s->fbfd, time_text, &ot, &yt) < 0) goto fail;
+
+	int summary_x = time_x + time_w + l->gap;
+	int summary_w = s->screen_w - summary_x - col_rm;
+	if (summary_w < 60) summary_w = 60;
+
+	// Estimate characters per line (average ~2.3px per pt per char),
+	// then truncate the summary to the allowed number of lines.
+	int chars_per_line = summary_w / (font_main * 2.3);
+	if (chars_per_line < 8) chars_per_line = 8;
+	char summary_buf[128];
+	truncate_ellipsis(summary_buf, sizeof(summary_buf), e->summary,
+			  (size_t) (max_lines * chars_per_line));
+
+	ot_setup(&ot, row_y, summary_x, col_rm, (unsigned) font_main, false);
+	if (ot_print_top(s->fbfd, summary_buf, &ot, &ys) < 0) goto fail;
+
+	if (e->is_over) fpen(LUM_BLACK);
+
+	if (e->is_over) {
+		*y = (yt > ys) ? yt : ys;
+		*y += l->gap / 2;
+		return 0;
+	}
+
+	int row_bottom = (yt > ys) ? yt : ys;
+	snprintf(buf, sizeof(buf), "\u2014 %s", e->feed_name);
+	ot_setup(&ot, ys + 2, summary_x + l->margin, col_rm,
+		 (unsigned) l->font_evt_sub, false);
+	if (ot_print_top(s->fbfd, buf, &ot, y) < 0) return -1;
+
+	if (row_bottom > *y) *y = row_bottom;
+	*y += l->gap;
+	return 0;
+
+fail:
+	if (e->is_over) fpen(LUM_BLACK);
+	return -1;
+}
+
 int render_calendar(const struct AppState *s, int top, int col_x, int col_w)
 {
 	const struct Layout *l = &s->layout;
 	FBInkOTConfig ot;
 	char buf[256];
 	int y = top;
-	int col_rm = s->screen_w - (col_x + col_w - l->margin);
+	int col_rm = s->screen_w - (col_x + col_w);
 	int has_today = 0, has_tomorrow = 0;
 	int max_y = s->screen_h - 55;
 
@@ -437,33 +583,7 @@ int render_calendar(const struct AppState *s, int top, int col_x, int col_w)
 	for (int i = 0; i < s->data.event_count && y < max_y; i++) {
 		const struct CalendarEvent *e = &s->data.events[i];
 		if (!e->is_today) continue;
-
-		int row_y = y;
-		int time_x = col_x;
-		int time_w = col_w / 5;
-		const char *time_text = e->all_day ? "All day" : e->time_str;
-
-		int yt = y, ys = y;
-		ot_setup(&ot, row_y, time_x,
-			 s->screen_w - time_x - time_w,
-			 (unsigned) l->font_evt, false);
-		if (ot_print_top(s->fbfd, time_text, &ot, &yt) < 0) return y;
-
-		int summary_x = time_x + time_w + l->gap;
-		ot_setup(&ot, row_y, summary_x, col_rm,
-			 (unsigned) l->font_evt, false);
-		if (ot_print_top(s->fbfd, e->summary, &ot, &ys) < 0) return y;
-
-		int row_bottom = (yt > ys) ? yt : ys;
-
-		snprintf(buf, sizeof(buf), "\u2014 %s", e->feed_name);
-		ot_setup(&ot, ys + 2, summary_x + l->margin, col_rm,
-			 (unsigned) l->font_evt_sub, false);
-		if (ot_print_top(s->fbfd, buf, &ot, &y) < 0) return y;
-
-		if (row_bottom > y) y = row_bottom;
-
-		y += l->gap;
+		if (render_event(s, e, col_x, col_w, &y) < 0) return y;
 		shown++;
 	}
 	if (shown < has_today) {
@@ -490,35 +610,7 @@ int render_calendar(const struct AppState *s, int top, int col_x, int col_w)
 		for (int i = 0; i < s->data.event_count && y < max_y; i++) {
 			const struct CalendarEvent *e = &s->data.events[i];
 			if (e->is_today) continue;
-
-			int row_y = y;
-			int time_x = col_x;
-			int time_w = col_w / 5;
-			const char *time_text = e->all_day ? "All day" : e->time_str;
-
-			int yt = y, ys = y;
-			ot_setup(&ot, row_y, time_x,
-				 s->screen_w - time_x - time_w,
-				 (unsigned) l->font_evt, false);
-			if (ot_print_top(s->fbfd, time_text, &ot, &yt) < 0)
-				return y;
-
-			int summary_x = time_x + time_w + l->gap;
-			ot_setup(&ot, row_y, summary_x, col_rm,
-				 (unsigned) l->font_evt, false);
-			if (ot_print_top(s->fbfd, e->summary, &ot, &ys) < 0)
-				return y;
-
-			int row_bottom = (yt > ys) ? yt : ys;
-
-			snprintf(buf, sizeof(buf), "\u2014 %s", e->feed_name);
-			ot_setup(&ot, ys + 2, summary_x + l->margin, col_rm,
-				 (unsigned) l->font_evt_sub, false);
-			if (ot_print_top(s->fbfd, buf, &ot, &y) < 0) return y;
-
-			if (row_bottom > y) y = row_bottom;
-
-			y += l->gap;
+			if (render_event(s, e, col_x, col_w, &y) < 0) return y;
 			shown_t++;
 		}
 		if (shown_t < has_tomorrow) {

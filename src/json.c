@@ -77,6 +77,7 @@ int json_parse_dashboard(const char *json, struct DashboardData *data)
 				 cJSON_GetStringValue(cJSON_GetObjectItem(item, "feed_name")));
 			e->all_day  = safe_int(cJSON_GetObjectItem(item, "all_day"));
 			e->is_today = safe_int(cJSON_GetObjectItem(item, "is_today"));
+			e->is_over  = safe_int(cJSON_GetObjectItem(item, "is_over"));
 			i++;
 		}
 		data->event_count = i;
