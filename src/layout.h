@@ -49,6 +49,7 @@ struct AppState {
 
 	time_t last_refresh;
 	time_t last_refresh_success;
+	time_t last_screen_refresh;
 	int    offline;
 	int    refresh_pending;
 };

@@ -31,7 +31,6 @@ static void sig_handler(int sig) { (void) sig; g_running = 0; }
 #define LUM_MED     128
 #define LUM_LIGHT   192
 #define LUM_WHITE   255
-#define LUM_OVER    96
 
 void layout_compute(struct Layout *l, int sw, int sh)
 {
@@ -509,8 +508,6 @@ static int render_event(const struct AppState *s, const struct CalendarEvent *e,
 
 	int yt = row_y, ys = row_y;
 
-	if (e->is_over) fpen(LUM_OVER);
-
 	ot_setup(&ot, row_y, time_x, s->screen_w - time_x - time_w,
 		 (unsigned) font_main, false);
 	if (ot_print_top(s->fbfd, time_text, &ot, &yt) < 0) goto fail;
@@ -529,8 +526,6 @@ static int render_event(const struct AppState *s, const struct CalendarEvent *e,
 
 	ot_setup(&ot, row_y, summary_x, col_rm, (unsigned) font_main, false);
 	if (ot_print_top(s->fbfd, summary_buf, &ot, &ys) < 0) goto fail;
-
-	if (e->is_over) fpen(LUM_BLACK);
 
 	if (e->is_over) {
 		*y = (yt > ys) ? yt : ys;
@@ -696,13 +691,6 @@ void render_full_screen(struct AppState *s)
 	sc.fg_color = FG_GRAY6;
 	fbink_print_ot(s->fbfd, status, &ots, &sc, NULL);
 
-	// Quit X, bottom-right
-	FBInkOTConfig otx;
-	ot_setup(&otx, s->screen_h - 50, s->screen_w - 50, l->margin, 24, true);
-	FBInkConfig xc = g_cfg_draw;
-	xc.fg_color = FG_GRAYA;
-	fbink_print_ot(s->fbfd, "X", &otx, &xc, NULL);
-
 	fbink_refresh(s->fbfd, 0, 0, 0, 0, &g_cfg_flash);
 }
 
@@ -829,10 +817,9 @@ static void render_task_completed(struct AppState *s, int idx)
 	fbink_cls(s->fbfd, &mc, &cr, false);
 	pen(LUM_WHITE);
 
-	// "TASK COMPLETED!" in dark text, centred in the cleared area
+	// "TASK COMPLETED!" at the same vertical position as the Done button
 	FBInkOTConfig ot;
-	int mid_y = button_y + (card_bottom - button_y) / 2 - 6;
-	ot_setup(&ot, mid_y, l->col_left,
+	ot_setup(&ot, button_y + 2, l->col_left,
 		 l->margin,
 		 (unsigned) l->font_btn, true);
 	fbink_print_ot(s->fbfd, "TASK COMPLETED!", &ot, &mc, NULL);
@@ -931,6 +918,7 @@ int main(int argc, char *argv[])
 		fbink_wait_for_complete(s.fbfd, LAST_MARKER);
 	}
 	s.last_refresh = time(NULL);
+	s.last_screen_refresh = time(NULL);
 
 	int touch_x = 0, touch_y = 0, touch_down = 0, conn_retries = 0;
 	struct pollfd pfd = { .fd = s.touch_fd, .events = POLLIN };
@@ -976,6 +964,17 @@ int main(int argc, char *argv[])
 				fbink_wait_for_complete(s.fbfd, LAST_MARKER);
 			}
 			continue;
+		}
+
+		// Full-screen flash every 2 hours to clear ghosting
+		if (s.data_loaded && now - s.last_screen_refresh >= 7200) {
+			fprintf(stderr, "homesrv: screen refresh (clear ghosting)\n");
+			FBInkConfig cc = g_cfg_flash;
+			cc.wfm_mode = WFM_GC16;
+			cc.is_flashing = true;
+			fbink_refresh(s.fbfd, 0, 0, 0, 0, &cc);
+			fbink_wait_for_complete(s.fbfd, LAST_MARKER);
+			s.last_screen_refresh = now;
 		}
 
 		// Clock partial refresh on minute boundaries
