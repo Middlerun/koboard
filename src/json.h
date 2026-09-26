@@ -42,7 +42,7 @@ struct Weather {
 	int    code;
 	char   description[32];
 	int    humidity;
-	int    rain_chance;
+	double rain_mm;
 	struct Forecast forecast[MAX_FORECAST];
 	int    forecast_count;
 };

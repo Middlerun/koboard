@@ -210,7 +210,7 @@
     "code": 95,
     "description": "Thunderstorm with heavy rain expected",
     "humidity": 88,
-    "rain_chance": 95,
+    "rain_mm": 23.7,
     "forecast": [
       {
         "name": "Sat",

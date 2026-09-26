@@ -102,7 +102,7 @@
     "code": 2,
     "description": "Partly cloudy",
     "humidity": 64,
-    "rain_chance": 20,
+    "rain_mm": 1.4,
     "forecast": [
       {
         "name": "Sat",

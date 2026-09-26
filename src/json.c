@@ -14,6 +14,14 @@ static void safe_str(char *dst, size_t dstsize, const char *src)
 	dst[dstsize - 1] = '\0';
 }
 
+static double safe_double(const cJSON *item)
+{
+	if (!item) return 0.0;
+	if (cJSON_IsNumber(item)) return item->valuedouble;
+	if (cJSON_IsString(item)) return atof(item->valuestring);
+	return 0.0;
+}
+
 static int safe_int(const cJSON *item)
 {
 	if (!item) return 0;
@@ -92,7 +100,7 @@ int json_parse_dashboard(const char *json, struct DashboardData *data)
 		w->today_low   = safe_int(cJSON_GetObjectItem(weather, "today_low"));
 		w->code        = safe_int(cJSON_GetObjectItem(weather, "code"));
 		w->humidity    = safe_int(cJSON_GetObjectItem(weather, "humidity"));
-		w->rain_chance = safe_int(cJSON_GetObjectItem(weather, "rain_chance"));
+		w->rain_mm     = safe_double(cJSON_GetObjectItem(weather, "rain_mm"));
 		safe_str(w->description, sizeof(w->description),
 			 cJSON_GetStringValue(cJSON_GetObjectItem(weather, "description")));
 

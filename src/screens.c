@@ -144,8 +144,8 @@ static UiNode *weather_block(UiArena *a, const struct Theme *t,
 	snprintf(detail + n, sizeof(detail) - n, " · %d°/%d°",
 		      w->today_high, w->today_low);
 	n = strlen(detail);
-	snprintf(detail + n, sizeof(detail) - n, " · ☂%d%%",
-		      w->rain_chance);
+	snprintf(detail + n, sizeof(detail) - n, " · ☂%.1fmm",
+		      w->rain_mm);
 	n = strlen(detail);
 	snprintf(detail + n, sizeof(detail) - n, " · \U0001F4A7%d%%",
 		 w->humidity);

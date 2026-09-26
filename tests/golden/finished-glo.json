@@ -7,7 +7,7 @@
     { "kind": "box", "rect": [25, 81, 708, 20], "h": "20" },
     { "kind": "box", "rect": [25, 101, 708, 124], "gap": 2, "kids": [
       { "kind": "text", "rect": [25, 101, 708, 89], "text": "⛅  18°", "size": 30, "lines": 1, "align": 1, "maxLines": 1 },
-      { "kind": "text", "rect": [25, 192, 708, 33], "text": "Partly cloudy · 22°/11° · ☂20% · 💧64%", "size": 11, "lines": 1, "align": 1, "maxLines": 1 }
+      { "kind": "text", "rect": [25, 192, 708, 33], "text": "Partly cloudy · 22°/11° · ☂1.4mm · 💧64%", "size": 11, "lines": 1, "align": 1, "maxLines": 1 }
     ] },
     { "kind": "box", "rect": [25, 225, 708, 40], "h": "40" },
     { "kind": "box", "rect": [25, 265, 708, 105], "dir": "row", "gap": 25, "kids": [

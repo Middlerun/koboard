@@ -24,7 +24,7 @@
   ],
   "weather": {
     "temperature": 18, "today_high": 22, "today_low": 11, "code": 2,
-    "description": "Partly cloudy", "humidity": 64, "rain_chance": 20,
+    "description": "Partly cloudy", "humidity": 64, "rain_mm": 1.4,
     "forecast": [
       { "name": "Sat", "high": 24, "low": 12, "code": 0, "description": "Clear" },
       { "name": "Sun", "high": 19, "low": 13, "code": 61, "description": "Rain" },
