@@ -1,0 +1,35 @@
+{
+  "date": "Friday, September 26, 2025",
+  "date_iso": "2025-09-26",
+  "tasks": [
+    { "id": 12, "title": "Take out the recycling bins", "next_due": "2025-09-25",
+      "due_time": null, "recur_type": "weekly", "assigned_name": "Eddie", "status": "overdue" },
+    { "id": 18, "title": "Water the plants", "next_due": "2025-09-26",
+      "due_time": "18:00", "recur_type": "daily", "assigned_name": "Sam", "status": "today" },
+    { "id": 23, "title": "Book the car in for its annual service", "next_due": "2025-09-29",
+      "due_time": null, "recur_type": "yearly", "assigned_name": null, "status": "future" }
+  ],
+  "calendar_events": [
+    { "summary": "Standup", "time": "9:30am", "color": "#3b82f6",
+      "feed_name": "Work", "all_day": 0, "is_today": 1, "is_over": 1 },
+    { "summary": "Dentist appointment", "time": "2:30pm", "color": "#ef4444",
+      "feed_name": "Personal", "all_day": 0, "is_today": 1, "is_over": 0 },
+    { "summary": "Dinner with the Hendersons at that new place on Brunswick Street",
+      "time": "7:00pm", "color": "#22c55e", "feed_name": "Personal",
+      "all_day": 0, "is_today": 1, "is_over": 0 },
+    { "summary": "Bin night", "time": "", "color": "#a855f7",
+      "feed_name": "Home", "all_day": 1, "is_today": 0, "is_over": 0 },
+    { "summary": "Sam's birthday", "time": "", "color": "#f59e0b",
+      "feed_name": "Family", "all_day": 1, "is_today": 0, "is_over": 0 }
+  ],
+  "weather": {
+    "temperature": 18, "today_high": 22, "today_low": 11, "code": 2,
+    "description": "Partly cloudy", "humidity": 64, "rain_chance": 20,
+    "forecast": [
+      { "name": "Sat", "high": 24, "low": 12, "code": 0, "description": "Clear" },
+      { "name": "Sun", "high": 19, "low": 13, "code": 61, "description": "Rain" },
+      { "name": "Mon", "high": 17, "low": 10, "code": 3, "description": "Overcast" },
+      { "name": "Tue", "high": 21, "low": 11, "code": 1, "description": "Mainly clear" }
+    ]
+  }
+}

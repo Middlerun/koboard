@@ -13,14 +13,18 @@ CJSON_H_URL    := https://raw.githubusercontent.com/DaveGamble/cJSON/v1.7.15/cJS
 CJSON_DIR      := vendor/cJSON
 
 FONT_NAME      := DejaVuSans.ttf
+FONT_BOLD_NAME := DejaVuSans-Bold.ttf
 FONT_VER       := version_2_37
 FONT_ZIP_URL   := https://github.com/dejavu-fonts/dejavu-fonts/releases/download/$(FONT_VER)/dejavu-fonts-ttf-2.37.zip
 FONTS_DIR      := fonts
+FONTS          := $(FONTS_DIR)/$(FONT_NAME) $(FONTS_DIR)/$(FONT_BOLD_NAME)
 
 KOBO_MOUNT     ?= /run/media/$(USER)/KOBOeReader
 
-CFLAGS         ?= -Wall -Wextra -O2 -std=gnu11
-CPPFLAGS       += -I$(FBINK_DIR) -I$(CJSON_DIR) \
+CFLAGS         ?= -Wall -Wextra -Wno-missing-field-initializers -O2 -std=gnu11
+UNIBREAK_DIR   := $(FBINK_DIR)/libunibreak/src
+STB_DIR        := $(FBINK_DIR)/stb
+CPPFLAGS       += -I$(FBINK_DIR) -I$(CJSON_DIR) -I$(STB_DIR) -I$(UNIBREAK_DIR) \
                   -I$(FBINK_DIR)/libevdev-staged/include/libevdev-1.0 \
                   -DHOMESRV_VERSION='"$(VERSION)"'
 LDLIBS         += -lm -lrt
@@ -35,15 +39,38 @@ PODMAN_MAKE := podman run --rm \
 	--entrypoint=make \
 	$(NICKELTC_IMAGE)
 
-SRCS := src/main.c src/http.c src/json.c \
-        $(CJSON_DIR)/cJSON.c
+# The UI engine (tree, layout, text measurement, paint walk) is portable: it is
+# compiled unchanged into both the device binary and the host preview.
+UI_SRCS := src/ui.c src/ui_layout.c src/ui_paint.c src/ui_text.c \
+           src/ui_stbtt.c src/screens.c
+UB_SRCS := $(UNIBREAK_DIR)/linebreak.c $(UNIBREAK_DIR)/linebreakdata.c \
+           $(UNIBREAK_DIR)/linebreakdef.c $(UNIBREAK_DIR)/unibreakbase.c \
+           $(UNIBREAK_DIR)/unibreakdef.c
+
+SRCS := src/main.c src/http.c src/json.c src/paint_fbink.c \
+        $(UI_SRCS) $(UB_SRCS) $(CJSON_DIR)/cJSON.c
 OBJS := $(patsubst %.c,build/%.o,$(SRCS))
+
+# ---- host preview ----
+HOST_CC       ?= cc
+HOST_CFLAGS   ?= -Wall -Wextra -Wno-missing-field-initializers -O2 -std=gnu11 -g
+HOST_CPPFLAGS := -Isrc -I$(CJSON_DIR) -I$(STB_DIR) -I$(UNIBREAK_DIR)
+PREVIEW_SRCS  := src/preview.c src/paint_stb.c src/http.c src/json.c \
+                 $(UI_SRCS) $(UB_SRCS) $(CJSON_DIR)/cJSON.c
+PREVIEW_BIN   := build/homesrv-preview
+
+# Which screens to render for `make preview`; both by default, so a layout is
+# never tuned for one panel by accident.
+PREVIEW_DEVICES ?= glo glohd
+FIXTURE         ?= typical
+# Fixed clock, so previews and golden files are reproducible.
+PREVIEW_NOW     ?= 1758880860
 
 DIST_APP := dist/.adds/homesrv
 DIST_NM  := dist/.adds/nm
 
 .PHONY: all toolchain fbink font app dist install clean distclean \
-        inner-fbink inner-app
+        inner-fbink inner-app preview preview-bin test golden open-preview
 
 all: dist
 
@@ -62,14 +89,24 @@ $(CJSON_DIR)/cJSON.c $(CJSON_DIR)/cJSON.h:
 
 vendor: $(FBINK_DIR) $(CJSON_DIR)/cJSON.c
 
-$(FONTS_DIR)/$(FONT_NAME):
-	mkdir -p $(FONTS_DIR)
-	curl -sL "$(FONT_ZIP_URL)" -o /tmp/opencode/dejavu-fonts.zip
-	unzip -o -j /tmp/opencode/dejavu-fonts.zip \
-		"dejavu-fonts-ttf-2.37/ttf/$(FONT_NAME)" -d $(FONTS_DIR)/
-	rm -f /tmp/opencode/dejavu-fonts.zip
+# One download provides both faces, tracked with a stamp so make does not try
+# to run the recipe once per output file.
+$(FONTS): $(FONTS_DIR)/.dejavu-stamp
+$(FONTS_DIR)/.dejavu-stamp:
+	@mkdir -p $(FONTS_DIR)
+	@if [ -f "$(FONTS_DIR)/$(FONT_NAME)" ] && [ -f "$(FONTS_DIR)/$(FONT_BOLD_NAME)" ]; then \
+		echo "fonts already present, skipping download"; \
+	else \
+		echo "downloading DejaVu $(FONT_VER)..."; \
+		curl -sL "$(FONT_ZIP_URL)" -o $(FONTS_DIR)/dejavu-fonts.zip && \
+		unzip -o -j $(FONTS_DIR)/dejavu-fonts.zip \
+			"dejavu-fonts-ttf-2.37/ttf/$(FONT_NAME)" \
+			"dejavu-fonts-ttf-2.37/ttf/$(FONT_BOLD_NAME)" -d $(FONTS_DIR)/ && \
+		rm -f $(FONTS_DIR)/dejavu-fonts.zip; \
+	fi
+	@touch $@
 
-font: $(FONTS_DIR)/$(FONT_NAME)
+font: $(FONTS)
 
 fbink: $(FBINK_DIR)/Release/libfbink.a
 
@@ -78,16 +115,16 @@ $(FBINK_DIR)/Release/libfbink.a: | $(FBINK_DIR)
 
 app: build/homesrv
 
-build/homesrv: $(SRCS) $(CJSON_DIR)/cJSON.c $(FBINK_DIR)/Release/libfbink.a
+build/homesrv: $(SRCS) $(FBINK_DIR)/Release/libfbink.a
 	mkdir -p build
 	$(PODMAN_MAKE) inner-app
 
-dist: build/homesrv scripts/homesrv.sh nm/homesrv $(FONTS_DIR)/$(FONT_NAME)
+dist: build/homesrv scripts/homesrv.sh nm/homesrv $(FONTS)
 	rm -rf dist
 	mkdir -p $(DIST_APP)/bin $(DIST_APP)/fonts $(DIST_NM)
 	cp build/homesrv $(DIST_APP)/bin/homesrv
 	cp scripts/homesrv.sh $(DIST_APP)/homesrv.sh
-	cp $(FONTS_DIR)/$(FONT_NAME) $(DIST_APP)/fonts/
+	cp $(FONTS) $(DIST_APP)/fonts/
 	cp nm/homesrv $(DIST_NM)/homesrv
 	tar -czf dist/homesrv-kobo-$(VERSION).tgz -C dist .adds
 	@echo "dist/ staged; copy dist/.adds onto the Kobo or run 'make install'"
@@ -115,6 +152,46 @@ distclean: clean
 	rm -rf vendor
 	rm -rf $(FONTS_DIR)
 
+# ---- host preview: renders the real layout without a Kobo ----
+#
+# Builds natively (no podman, no cross-compiler) against the same UI sources
+# the device uses, so the edit -> look loop is a second rather than a reinstall.
+
+preview-bin: $(PREVIEW_BIN)
+
+$(PREVIEW_BIN): $(PREVIEW_SRCS) $(CJSON_DIR)/cJSON.c | $(FBINK_DIR)
+	mkdir -p build
+	$(HOST_CC) $(HOST_CPPFLAGS) $(HOST_CFLAGS) -o $@ $(PREVIEW_SRCS) -lm
+
+preview: $(PREVIEW_BIN) $(FONTS)
+	@for dev in $(PREVIEW_DEVICES); do \
+		$(PREVIEW_BIN) --json fixtures/$(FIXTURE).json --device $$dev \
+			--now $(PREVIEW_NOW) $(PREVIEW_ARGS) \
+			--font $(FONTS_DIR)/$(FONT_NAME) \
+			--font-bold $(FONTS_DIR)/$(FONT_BOLD_NAME) \
+			--out build/preview-$(FIXTURE)-$$dev.png || exit 1; \
+	done
+
+# Same, but pointed at a running server instead of a fixture.
+preview-live: $(PREVIEW_BIN) $(FONTS)
+	@test -n "$(SERVER)" || { echo "usage: make preview-live SERVER=http://host:8082 [TOKEN=...]"; exit 1; }
+	$(PREVIEW_BIN) --url "$(SERVER)" --token "$(TOKEN)" \
+		--device $(firstword $(PREVIEW_DEVICES)) \
+		--font $(FONTS_DIR)/$(FONT_NAME) \
+		--font-bold $(FONTS_DIR)/$(FONT_BOLD_NAME) \
+		--out build/preview-live.png
+
+open-preview: preview
+	@xdg-open build/preview-$(FIXTURE)-$(firstword $(PREVIEW_DEVICES)).png 2>/dev/null || true
+
+# Golden layout tests: every node's computed rect, compared against a checked-in
+# dump. Catches layout regressions without a device and without eyeballing.
+test: $(PREVIEW_BIN) $(FONTS)
+	@scripts/run-tests.sh $(PREVIEW_BIN) check
+
+golden: $(PREVIEW_BIN) $(FONTS)
+	@scripts/run-tests.sh $(PREVIEW_BIN) update
+
 # ---- inner targets: run inside the NickelTC container only ----
 
 inner-fbink:
@@ -122,15 +199,11 @@ inner-fbink:
 	$(MAKE) -C $(FBINK_DIR) libevdev.built CROSS_TC=$(CROSS_TC)
 
 inner-app:
-	mkdir -p build/src build/vendor/cJSON
-	$(CROSS_TC)-gcc $(CPPFLAGS) $(CFLAGS) -c src/http.c -o build/src/http.o
-	$(CROSS_TC)-gcc $(CPPFLAGS) $(CFLAGS) -c src/json.c -o build/src/json.o
-	$(CROSS_TC)-gcc $(CPPFLAGS) $(CFLAGS) -c src/main.c -o build/src/main.o
-	$(CROSS_TC)-gcc $(CPPFLAGS) $(CFLAGS) -c $(CJSON_DIR)/cJSON.c -o build/vendor/cJSON/cJSON.o
+	mkdir -p $(sort $(dir $(OBJS)))
+	$(foreach src,$(SRCS),\
+		$(CROSS_TC)-gcc $(CPPFLAGS) $(CFLAGS) -c $(src) -o build/$(src:.c=.o) &&) true
 	$(CROSS_TC)-gcc $(CPPFLAGS) $(CFLAGS) \
-		-o build/homesrv \
-		build/src/main.o build/src/http.o build/src/json.o \
-		build/vendor/cJSON/cJSON.o \
+		-o build/homesrv $(OBJS) \
 		$(FBINK_DIR)/Release/libfbink.a \
 		$(FBINK_DIR)/libi2c-staged/lib/libi2c.a \
 		$(EVDEV_LDFLAGS) $(EVDEV_LIBS) \

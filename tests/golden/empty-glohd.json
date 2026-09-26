@@ -1,0 +1,28 @@
+{ "kind": "box", "rect": [0, 0, 1072, 1448], "bg": 255, "kids": [
+  { "kind": "box", "rect": [0, 0, 1072, 118], "pad": [40, 35, 0, 35], "kids": [
+    { "kind": "box", "key": "clock", "rect": [35, 40, 1002, 58], "dir": "row", "gap": 35, "cross": 3, "kids": [
+      { "kind": "text", "rect": [35, 40, 846, 58], "text": "Fri, Sep 26", "size": 14, "lines": 1, "maxLines": 1, "w": "flex:1" },
+      { "kind": "text", "rect": [916, 48, 121, 50], "text": "10:01", "size": 12, "lines": 1, "align": 2, "maxLines": 1 }
+    ] },
+    { "kind": "box", "rect": [35, 98, 1002, 20], "h": "20" }
+  ] },
+  { "kind": "box", "rect": [0, 118, 1072, 4], "h": "4", "bg": 64 },
+  { "kind": "box", "rect": [0, 122, 1072, 30], "h": "30" },
+  { "kind": "box", "rect": [0, 152, 1072, 1240], "dir": "row", "h": "flex:1", "kids": [
+    { "kind": "box", "rect": [0, 152, 534, 1240], "gap": 35, "clip": true, "w": "flex:1", "pad": [0, 35, 0, 35], "kids": [
+      { "kind": "text", "rect": [35, 152, 464, 58], "text": "TASKS", "size": 14, "lines": 1, "maxLines": 1 },
+      { "kind": "text", "rect": [35, 245, 464, 38], "text": "Nothing to do", "size": 9, "lines": 1, "maxLines": 1 }
+    ] },
+    { "kind": "box", "rect": [534, 152, 4, 1240], "w": "4", "bg": 64 },
+    { "kind": "box", "rect": [538, 152, 534, 1240], "gap": 11, "clip": true, "w": "flex:1", "pad": [0, 35, 0, 35], "kids": [
+      { "kind": "text", "rect": [573, 152, 464, 58], "text": "TODAY", "size": 14, "lines": 1, "maxLines": 1 },
+      { "kind": "text", "rect": [573, 221, 464, 62], "text": "Nothing scheduled", "size": 9, "lines": 1, "maxLines": 1, "pad": [24, 0, 0, 0] },
+      { "kind": "text", "rect": [573, 294, 464, 82], "text": "TOMORROW", "size": 14, "lines": 1, "maxLines": 1, "pad": [24, 0, 0, 0] },
+      { "kind": "text", "rect": [573, 387, 464, 62], "text": "Nothing scheduled", "size": 9, "lines": 1, "maxLines": 1, "pad": [24, 0, 0, 0] }
+    ] }
+  ] },
+  { "kind": "box", "key": "status", "rect": [0, 1392, 1072, 56], "dir": "row", "main": 3, "cross": 3, "pad": [0, 35, 12, 35], "kids": [
+    { "kind": "text", "rect": [35, 1407, 349, 29], "text": "Last refresh: 10:01  · Online", "size": 7, "lines": 1, "maxLines": 1, "fg": 128 },
+    { "kind": "box", "key": "quit", "rect": [967, 1392, 70, 44], "w": "70", "h": "44", "action": { "kind": 3 } }
+  ] }
+] }

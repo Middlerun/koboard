@@ -1,0 +1,245 @@
+{
+  "date": "Friday, September 26, 2025",
+  "date_iso": "2025-09-26",
+  "tasks": [
+    {
+      "id": 100,
+      "title": "Clean the gutters",
+      "next_due": "2025-09-20",
+      "due_time": "09:00",
+      "recur_type": "weekly",
+      "assigned_name": "Eddie",
+      "status": "overdue"
+    },
+    {
+      "id": 101,
+      "title": "Replace the smoke alarm batteries in the hallway and both bedrooms",
+      "next_due": "2025-09-21",
+      "due_time": null,
+      "recur_type": "monthly",
+      "assigned_name": "Sam",
+      "status": "overdue"
+    },
+    {
+      "id": 102,
+      "title": "Descale the kettle",
+      "next_due": "2025-09-22",
+      "due_time": null,
+      "recur_type": "yearly",
+      "assigned_name": null,
+      "status": "overdue"
+    },
+    {
+      "id": 103,
+      "title": "Pay the water bill",
+      "next_due": "2025-09-23",
+      "due_time": "09:00",
+      "recur_type": "weekly",
+      "assigned_name": "Eddie",
+      "status": "overdue"
+    },
+    {
+      "id": 104,
+      "title": "Prune the lemon tree",
+      "next_due": "2025-09-24",
+      "due_time": null,
+      "recur_type": "monthly",
+      "assigned_name": "Sam",
+      "status": "future"
+    },
+    {
+      "id": 105,
+      "title": "Vacuum under the couch",
+      "next_due": "2025-09-25",
+      "due_time": null,
+      "recur_type": "yearly",
+      "assigned_name": null,
+      "status": "future"
+    },
+    {
+      "id": 106,
+      "title": "Back up the family photos",
+      "next_due": "2025-09-26",
+      "due_time": "09:00",
+      "recur_type": "weekly",
+      "assigned_name": "Eddie",
+      "status": "future"
+    },
+    {
+      "id": 107,
+      "title": "Rotate the mattress",
+      "next_due": "2025-09-27",
+      "due_time": null,
+      "recur_type": "monthly",
+      "assigned_name": "Sam",
+      "status": "future"
+    },
+    {
+      "id": 108,
+      "title": "Service the bike",
+      "next_due": "2025-09-20",
+      "due_time": null,
+      "recur_type": "yearly",
+      "assigned_name": null,
+      "status": "future"
+    },
+    {
+      "id": 109,
+      "title": "Clear out the garage shelves",
+      "next_due": "2025-09-21",
+      "due_time": "09:00",
+      "recur_type": "weekly",
+      "assigned_name": "Eddie",
+      "status": "future"
+    }
+  ],
+  "calendar_events": [
+    {
+      "summary": "Event number 0 with a reasonably long summary line",
+      "time": "1:00am",
+      "color": "#3b82f6",
+      "feed_name": "Personal",
+      "all_day": 0,
+      "is_today": 1,
+      "is_over": 1
+    },
+    {
+      "summary": "Event number 1 with a reasonably long summary line",
+      "time": "2:00am",
+      "color": "#3b82f6",
+      "feed_name": "Work",
+      "all_day": 0,
+      "is_today": 1,
+      "is_over": 1
+    },
+    {
+      "summary": "Event number 2 with a reasonably long summary line",
+      "time": "3:00am",
+      "color": "#3b82f6",
+      "feed_name": "Personal",
+      "all_day": 0,
+      "is_today": 1,
+      "is_over": 0
+    },
+    {
+      "summary": "Event number 3 with a reasonably long summary line",
+      "time": "4:00am",
+      "color": "#3b82f6",
+      "feed_name": "Work",
+      "all_day": 0,
+      "is_today": 1,
+      "is_over": 0
+    },
+    {
+      "summary": "Event number 4 with a reasonably long summary line",
+      "time": "5:00am",
+      "color": "#3b82f6",
+      "feed_name": "Personal",
+      "all_day": 0,
+      "is_today": 1,
+      "is_over": 0
+    },
+    {
+      "summary": "Event number 5 with a reasonably long summary line",
+      "time": "6:00am",
+      "color": "#3b82f6",
+      "feed_name": "Work",
+      "all_day": 0,
+      "is_today": 1,
+      "is_over": 0
+    },
+    {
+      "summary": "Event number 6 with a reasonably long summary line",
+      "time": "7:00pm",
+      "color": "#3b82f6",
+      "feed_name": "Personal",
+      "all_day": 0,
+      "is_today": 1,
+      "is_over": 0
+    },
+    {
+      "summary": "Event number 7 with a reasonably long summary line",
+      "time": "8:00pm",
+      "color": "#3b82f6",
+      "feed_name": "Work",
+      "all_day": 0,
+      "is_today": 0,
+      "is_over": 0
+    },
+    {
+      "summary": "Event number 8 with a reasonably long summary line",
+      "time": "9:00pm",
+      "color": "#3b82f6",
+      "feed_name": "Personal",
+      "all_day": 0,
+      "is_today": 0,
+      "is_over": 0
+    },
+    {
+      "summary": "Event number 9 with a reasonably long summary line",
+      "time": "10:00pm",
+      "color": "#3b82f6",
+      "feed_name": "Work",
+      "all_day": 0,
+      "is_today": 0,
+      "is_over": 0
+    },
+    {
+      "summary": "Event number 10 with a reasonably long summary line",
+      "time": "11:00pm",
+      "color": "#3b82f6",
+      "feed_name": "Personal",
+      "all_day": 0,
+      "is_today": 0,
+      "is_over": 0
+    },
+    {
+      "summary": "Event number 11 with a reasonably long summary line",
+      "time": "1:00pm",
+      "color": "#3b82f6",
+      "feed_name": "Work",
+      "all_day": 0,
+      "is_today": 0,
+      "is_over": 0
+    }
+  ],
+  "weather": {
+    "temperature": 31,
+    "today_high": 35,
+    "today_low": 19,
+    "code": 95,
+    "description": "Thunderstorm with heavy rain expected",
+    "humidity": 88,
+    "rain_chance": 95,
+    "forecast": [
+      {
+        "name": "Sat",
+        "high": 30,
+        "low": 15,
+        "code": 61,
+        "description": "Rain"
+      },
+      {
+        "name": "Sun",
+        "high": 29,
+        "low": 16,
+        "code": 62,
+        "description": "Rain"
+      },
+      {
+        "name": "Mon",
+        "high": 28,
+        "low": 17,
+        "code": 63,
+        "description": "Rain"
+      },
+      {
+        "name": "Tue",
+        "high": 27,
+        "low": 18,
+        "code": 64,
+        "description": "Rain"
+      }
+    ]
+  }
+}

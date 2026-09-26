@@ -1,0 +1,108 @@
+{ "kind": "box", "rect": [0, 0, 1072, 1448], "bg": 255, "kids": [
+  { "kind": "box", "rect": [0, 0, 1072, 507], "pad": [40, 35, 0, 35], "kids": [
+    { "kind": "box", "key": "clock", "rect": [35, 40, 1002, 58], "dir": "row", "gap": 35, "cross": 3, "kids": [
+      { "kind": "text", "rect": [35, 40, 846, 58], "text": "Fri, Sep 26", "size": 14, "lines": 1, "maxLines": 1, "w": "flex:1" },
+      { "kind": "text", "rect": [916, 48, 121, 50], "text": "10:01", "size": 12, "lines": 1, "align": 2, "maxLines": 1 }
+    ] },
+    { "kind": "box", "rect": [35, 98, 1002, 20], "h": "20" },
+    { "kind": "box", "rect": [35, 118, 1002, 173], "gap": 2, "kids": [
+      { "kind": "text", "rect": [35, 118, 1002, 125], "text": "⛅  18°", "size": 30, "lines": 1, "align": 1, "maxLines": 1 },
+      { "kind": "text", "rect": [35, 245, 1002, 46], "text": "Partly cloudy · 22°/11° · ☂20% · 💧64%", "size": 11, "lines": 1, "align": 1, "maxLines": 1 }
+    ] },
+    { "kind": "box", "rect": [35, 291, 1002, 40], "h": "40" },
+    { "kind": "box", "rect": [35, 331, 1002, 146], "dir": "row", "gap": 35, "kids": [
+      { "kind": "box", "rect": [35, 331, 224, 146], "gap": 2, "w": "flex:1", "kids": [
+        { "kind": "text", "rect": [35, 331, 224, 42], "text": "Sat", "size": 10, "lines": 1, "align": 1, "maxLines": 1 },
+        { "kind": "text", "rect": [35, 375, 224, 58], "text": "☀", "size": 14, "lines": 1, "align": 1, "maxLines": 1 },
+        { "kind": "text", "rect": [35, 435, 224, 42], "text": "24°/12°", "size": 10, "lines": 1, "align": 1, "maxLines": 1 }
+      ] },
+      { "kind": "box", "rect": [294, 331, 224, 146], "gap": 2, "w": "flex:1", "kids": [
+        { "kind": "text", "rect": [294, 331, 224, 42], "text": "Sun", "size": 10, "lines": 1, "align": 1, "maxLines": 1 },
+        { "kind": "text", "rect": [294, 375, 224, 58], "text": "🌧", "size": 14, "lines": 1, "align": 1, "maxLines": 1 },
+        { "kind": "text", "rect": [294, 435, 224, 42], "text": "19°/13°", "size": 10, "lines": 1, "align": 1, "maxLines": 1 }
+      ] },
+      { "kind": "box", "rect": [553, 331, 224, 146], "gap": 2, "w": "flex:1", "kids": [
+        { "kind": "text", "rect": [553, 331, 224, 42], "text": "Mon", "size": 10, "lines": 1, "align": 1, "maxLines": 1 },
+        { "kind": "text", "rect": [553, 375, 224, 58], "text": "☁", "size": 14, "lines": 1, "align": 1, "maxLines": 1 },
+        { "kind": "text", "rect": [553, 435, 224, 42], "text": "17°/10°", "size": 10, "lines": 1, "align": 1, "maxLines": 1 }
+      ] },
+      { "kind": "box", "rect": [812, 331, 225, 146], "gap": 2, "w": "flex:1", "kids": [
+        { "kind": "text", "rect": [812, 331, 225, 42], "text": "Tue", "size": 10, "lines": 1, "align": 1, "maxLines": 1 },
+        { "kind": "text", "rect": [812, 375, 225, 58], "text": "🌤", "size": 14, "lines": 1, "align": 1, "maxLines": 1 },
+        { "kind": "text", "rect": [812, 435, 225, 42], "text": "21°/11°", "size": 10, "lines": 1, "align": 1, "maxLines": 1 }
+      ] }
+    ] },
+    { "kind": "box", "rect": [35, 477, 1002, 30], "h": "30" }
+  ] },
+  { "kind": "box", "rect": [0, 507, 1072, 4], "h": "4", "bg": 64 },
+  { "kind": "box", "rect": [0, 511, 1072, 30], "h": "30" },
+  { "kind": "box", "rect": [0, 541, 1072, 851], "dir": "row", "h": "flex:1", "kids": [
+    { "kind": "box", "rect": [0, 541, 534, 851], "gap": 35, "clip": true, "w": "flex:1", "pad": [0, 35, 0, 35], "kids": [
+      { "kind": "text", "rect": [35, 541, 464, 58], "text": "TASKS", "size": 14, "lines": 1, "maxLines": 1 },
+      { "kind": "box", "key": "task-12", "rect": [35, 634, 464, 208], "gap": 4, "kids": [
+        { "kind": "text", "rect": [35, 634, 464, 108], "text": "Take out the recycling bins", "size": 13, "lines": 2, "maxLines": 2 },
+        { "kind": "text", "rect": [35, 746, 464, 38], "text": "Was due yesterday · Eddie…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
+        { "kind": "box", "rect": [35, 788, 278, 54], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "bg": 64, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=12" }, "kids": [
+          { "kind": "text", "rect": [130, 796, 87, 38], "text": "Done", "size": 9, "lines": 1, "align": 1, "maxLines": 1, "fg": 255 }
+        ] }
+      ] },
+      { "kind": "box", "key": "task-18", "rect": [35, 877, 464, 154], "gap": 4, "kids": [
+        { "kind": "text", "rect": [35, 877, 464, 54], "text": "Water the plants", "size": 13, "lines": 1, "maxLines": 2 },
+        { "kind": "text", "rect": [35, 935, 464, 38], "text": "Due today · 18:00 · Sam ·…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
+        { "kind": "box", "rect": [35, 977, 278, 54], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "bg": 64, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=18" }, "kids": [
+          { "kind": "text", "rect": [130, 985, 87, 38], "text": "Done", "size": 9, "lines": 1, "align": 1, "maxLines": 1, "fg": 255 }
+        ] }
+      ] },
+      { "kind": "box", "key": "task-23", "rect": [35, 1066, 464, 208], "gap": 4, "kids": [
+        { "kind": "text", "rect": [35, 1066, 464, 108], "text": "Book the car in for its annual service", "size": 13, "lines": 2, "maxLines": 2 },
+        { "kind": "text", "rect": [35, 1178, 464, 38], "text": "Due on Monday · yearly", "size": 9, "lines": 1, "maxLines": 1 },
+        { "kind": "box", "rect": [35, 1220, 278, 54], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "bg": 64, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=23" }, "kids": [
+          { "kind": "text", "rect": [130, 1228, 87, 38], "text": "Done", "size": 9, "lines": 1, "align": 1, "maxLines": 1, "fg": 255 }
+        ] }
+      ] }
+    ] },
+    { "kind": "box", "rect": [534, 541, 4, 851], "w": "4", "bg": 64 },
+    { "kind": "box", "rect": [538, 541, 534, 851], "gap": 11, "clip": true, "w": "flex:1", "pad": [0, 35, 0, 35], "kids": [
+      { "kind": "text", "rect": [573, 541, 464, 58], "text": "TODAY", "size": 14, "lines": 1, "maxLines": 1 },
+      { "kind": "box", "rect": [573, 610, 464, 33], "dir": "row", "gap": 35, "kids": [
+        { "kind": "text", "rect": [573, 610, 171, 33], "text": "9:30am", "size": 8, "lines": 1, "maxLines": 1, "w": "37%" },
+        { "kind": "box", "rect": [779, 610, 258, 33], "gap": 2, "w": "flex:1", "kids": [
+          { "kind": "text", "rect": [779, 610, 258, 33], "text": "Standup", "size": 8, "lines": 1, "maxLines": 1 }
+        ] }
+      ] },
+      { "kind": "box", "rect": [573, 654, 464, 151], "dir": "row", "gap": 35, "pad": [24, 0, 0, 0], "kids": [
+        { "kind": "text", "rect": [573, 678, 171, 127], "text": "2:30pm", "size": 11, "lines": 1, "maxLines": 1, "w": "37%" },
+        { "kind": "box", "rect": [779, 678, 258, 127], "gap": 2, "w": "flex:1", "kids": [
+          { "kind": "text", "rect": [779, 678, 258, 92], "text": "Dentist appointment", "size": 11, "lines": 2, "maxLines": 3 },
+          { "kind": "text", "rect": [779, 772, 258, 33], "text": "— Personal", "size": 8, "lines": 1, "maxLines": 1 }
+        ] }
+      ] },
+      { "kind": "box", "rect": [573, 816, 464, 197], "dir": "row", "gap": 35, "pad": [24, 0, 0, 0], "kids": [
+        { "kind": "text", "rect": [573, 840, 171, 173], "text": "7:00pm", "size": 11, "lines": 1, "maxLines": 1, "w": "37%" },
+        { "kind": "box", "rect": [779, 840, 258, 173], "gap": 2, "w": "flex:1", "kids": [
+          { "kind": "text", "rect": [779, 840, 258, 138], "text": "Dinner with the Henderson…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
+          { "kind": "text", "rect": [779, 980, 258, 33], "text": "— Personal", "size": 8, "lines": 1, "maxLines": 1 }
+        ] }
+      ] },
+      { "kind": "text", "rect": [573, 1024, 464, 82], "text": "TOMORROW", "size": 14, "lines": 1, "maxLines": 1, "pad": [24, 0, 0, 0] },
+      { "kind": "box", "rect": [573, 1117, 464, 105], "dir": "row", "gap": 35, "pad": [24, 0, 0, 0], "kids": [
+        { "kind": "text", "rect": [573, 1141, 171, 81], "text": "All day", "size": 11, "lines": 1, "maxLines": 1, "w": "37%" },
+        { "kind": "box", "rect": [779, 1141, 258, 81], "gap": 2, "w": "flex:1", "kids": [
+          { "kind": "text", "rect": [779, 1141, 258, 46], "text": "Bin night", "size": 11, "lines": 1, "maxLines": 3 },
+          { "kind": "text", "rect": [779, 1189, 258, 33], "text": "— Home", "size": 8, "lines": 1, "maxLines": 1 }
+        ] }
+      ] },
+      { "kind": "box", "rect": [573, 1233, 464, 151], "dir": "row", "gap": 35, "pad": [24, 0, 0, 0], "kids": [
+        { "kind": "text", "rect": [573, 1257, 171, 127], "text": "All day", "size": 11, "lines": 1, "maxLines": 1, "w": "37%" },
+        { "kind": "box", "rect": [779, 1257, 258, 127], "gap": 2, "w": "flex:1", "kids": [
+          { "kind": "text", "rect": [779, 1257, 258, 92], "text": "Sam's birthday", "size": 11, "lines": 2, "maxLines": 3 },
+          { "kind": "text", "rect": [779, 1351, 258, 33], "text": "— Family", "size": 8, "lines": 1, "maxLines": 1 }
+        ] }
+      ] }
+    ] }
+  ] },
+  { "kind": "box", "key": "status", "rect": [0, 1392, 1072, 56], "dir": "row", "main": 3, "cross": 3, "pad": [0, 35, 12, 35], "kids": [
+    { "kind": "text", "rect": [35, 1407, 349, 29], "text": "Last refresh: 10:01  · Online", "size": 7, "lines": 1, "maxLines": 1, "fg": 128 },
+    { "kind": "box", "key": "quit", "rect": [967, 1392, 70, 44], "w": "70", "h": "44", "action": { "kind": 3 } }
+  ] }
+] }
