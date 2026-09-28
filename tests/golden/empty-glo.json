@@ -14,11 +14,11 @@
       { "kind": "text", "rect": [25, 201, 327, 27], "text": "Nothing to do", "size": 9, "lines": 1, "maxLines": 1 }
     ] },
     { "kind": "box", "rect": [377, 135, 4, 833], "w": "4", "bg": 64 },
-    { "kind": "box", "rect": [381, 135, 377, 833], "gap": 8, "clip": true, "w": "flex:1", "pad": [0, 25, 0, 25], "kids": [
+    { "kind": "box", "rect": [381, 135, 377, 833], "gap": 4, "clip": true, "w": "flex:1", "pad": [0, 25, 0, 25], "kids": [
       { "kind": "text", "rect": [406, 135, 327, 41], "text": "TODAY", "size": 14, "lines": 1, "maxLines": 1 },
-      { "kind": "text", "rect": [406, 184, 327, 44], "text": "Nothing scheduled", "size": 9, "lines": 1, "maxLines": 1, "pad": [17, 0, 0, 0] },
-      { "kind": "text", "rect": [406, 236, 327, 58], "text": "TOMORROW", "size": 14, "lines": 1, "maxLines": 1, "pad": [17, 0, 0, 0] },
-      { "kind": "text", "rect": [406, 302, 327, 44], "text": "Nothing scheduled", "size": 9, "lines": 1, "maxLines": 1, "pad": [17, 0, 0, 0] }
+      { "kind": "text", "rect": [406, 180, 327, 48], "text": "Nothing scheduled", "size": 9, "lines": 1, "maxLines": 1, "pad": [21, 0, 0, 0] },
+      { "kind": "text", "rect": [406, 232, 327, 62], "text": "TOMORROW", "size": 14, "lines": 1, "maxLines": 1, "pad": [21, 0, 0, 0] },
+      { "kind": "text", "rect": [406, 298, 327, 48], "text": "Nothing scheduled", "size": 9, "lines": 1, "maxLines": 1, "pad": [21, 0, 0, 0] }
     ] }
   ] },
   { "kind": "box", "key": "status", "rect": [0, 968, 758, 56], "dir": "row", "main": 3, "cross": 3, "pad": [0, 25, 12, 25], "kids": [

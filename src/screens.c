@@ -11,8 +11,8 @@ void theme_init(struct Theme *t, int screen_w)
 	t->gap = t->margin;
 	// Spacing between events that have already finished: they are reference
 	// material rather than things to act on, so they pack together.
-	t->gap_tight = t->margin / 3;
-	if (t->gap_tight < 4) t->gap_tight = 4;
+	t->gap_tight = t->margin / 6;
+	if (t->gap_tight < 2) t->gap_tight = 2;
 
 	t->font_date     = 14;
 	t->font_time     = 12;
@@ -198,17 +198,23 @@ static UiNode *task_card(UiArena *a, const struct Theme *t,
 
 	// The Done button sizes itself from its padding, so the touch target grows
 	// with the screen's DPI instead of being a hard-coded pixel height.
+	//
+	// It is outlined rather than filled: on the panel, light glyphs on a dark
+	// fill come out as a blank grey slab, because the waveform blends the two
+	// greys long before the thin strokes survive. Black on white is the only
+	// combination e-ink renders reliably at label sizes.
 	UiNode *button = KIDS(BOX(a, .dir = UI_ROW, .w = PCT(60),
 				  .main = UI_MAIN_CENTER, .cross = UI_CROSS_CENTER,
-				  .pad = PAD_XY(8, 12), .bg = UI_DARK,
+				  .pad = PAD_XY(8, 12), .bg = UI_WHITE,
+				  .border = 2, .border_color = UI_BLACK,
 				  .action = ACTION(a, .kind = UI_ACT_POST,
 						   .path = "/api/tasks/complete.php",
 						   .body = ui_strf(a, "task_id=%d", task->id),
 						   // Kept short so it fits the button on one line at
 							   // both panel sizes (see docs/ui-schema.md).
 							   .toast = "COMPLETED!")),
-		TEXT(a, "Done", .size_pt = t->font_btn, .fg = UI_WHITE,
-		     .align = UI_ALIGN_CENTER, .max_lines = 1));
+		TEXT(a, "Done", .size_pt = t->font_btn, .fg = UI_BLACK,
+		     .style = UI_FNT_BOLD, .align = UI_ALIGN_CENTER, .max_lines = 1));
 
 	return KIDS(BOX(a, .dir = UI_COL, .gap = 4,
 			.key = ui_strf(a, "task-%d", task->id)),
