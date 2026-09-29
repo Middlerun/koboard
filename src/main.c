@@ -1,5 +1,7 @@
 #include "app.h"
+#include "config.h"
 #include "http.h"
+#include "ui_json.h"
 #include "ui_layout.h"
 #include "ui_paint.h"
 
@@ -15,6 +17,7 @@
 #include <poll.h>
 #include <signal.h>
 #include <errno.h>
+#include <stdbool.h>
 
 static volatile sig_atomic_t g_running = 1;
 static FBInkConfig g_cfg_draw  = { 0 };
@@ -26,26 +29,10 @@ static int g_touch_mirrored_x = 1;
 
 static void sig_handler(int sig) { (void) sig; g_running = 0; }
 
-int load_config(struct AppState *state)
+// The server currently selected in the menu.
+static const struct Server *cur(const struct AppState *s)
 {
-	char path[512];
-	snprintf(path, sizeof(path), "%s/config", state->base_dir);
-	FILE *f = fopen(path, "r");
-	if (!f) return -1;
-	char line[256];
-	while (fgets(line, sizeof(line), f)) {
-		char *nl = strchr(line, '\n'); if (nl) *nl = '\0';
-		if (line[0] == '#' || line[0] == '\0') continue;
-		char *eq = strchr(line, '='); if (!eq) continue;
-		*eq = '\0';
-		if (strcmp(line, "SERVER_URL") == 0)
-			snprintf(state->server_url, sizeof(state->server_url), "%s", eq + 1);
-		else if (strcmp(line, "API_TOKEN") == 0)
-			snprintf(state->api_token, sizeof(state->api_token), "%s", eq + 1);
-	}
-	fclose(f);
-	if (state->server_url[0] == '\0' || state->api_token[0] == '\0') return -1;
-	return 0;
+	return &s->config.servers[s->server_index];
 }
 
 int init_display(struct AppState *s)
@@ -123,8 +110,9 @@ int init_display(struct AppState *s)
 
 // ---- rendering -----------------------------------------------------------
 
-// Rebuild this frame's tree and lay it out. Cheap enough (tens of
-// microseconds, one arena reset) to redo whenever anything might have moved.
+// Rebuild this frame's tree and lay it out. The body is re-parsed from the
+// server's JSON every time, which costs a few milliseconds and keeps one code
+// path: there is no half-built tree to keep in sync with the arena.
 static UiNode *build_frame(struct AppState *s, const char *message)
 {
 	ui_arena_reset(&s->arena);
@@ -135,11 +123,30 @@ static UiNode *build_frame(struct AppState *s, const char *message)
 		.offline = s->offline,
 	};
 
-	if (message || !s->data_loaded)
-		s->root = screen_message(&s->arena, &s->theme,
-					 message ? message : "Loading…");
-	else
-		s->root = screen_dashboard(&s->arena, &s->theme, &s->data, &ctx);
+	if (s->menu_open) {
+		s->root = screen_menu(&s->arena, &s->theme, &s->config,
+				      s->server_index, HOMESRV_VERSION);
+		ui_layout(s->root, &s->text, &s->arena,
+			  (UiRect){ 0, 0, s->screen_w, s->screen_h });
+		return s->root;
+	}
+
+	UiNode *body = NULL;
+	char err[160] = { 0 };
+	if (!message && s->ui_json) {
+		UiVars vars = { .now = ctx.now };
+		body = ui_from_json(&s->arena, s->ui_json, &vars, err, sizeof(err));
+		if (!body) fprintf(stderr, "homesrv: bad UI from server: %s\n", err);
+	}
+
+	// A message goes in the frame too, not instead of it: the corner targets
+	// are the only way to reach the menu, and "cannot talk to this server" is
+	// exactly when you want to pick a different one.
+	if (!body) {
+		const char *msg = message ? message : (err[0] ? err : "Loading…");
+		body = screen_message(&s->arena, &s->theme, msg);
+	}
+	s->root = screen_frame(&s->arena, &s->theme, body, &ctx);
 
 	ui_layout(s->root, &s->text, &s->arena,
 		  (UiRect){ 0, 0, s->screen_w, s->screen_h });
@@ -210,9 +217,9 @@ static void render_toast(struct AppState *s, const UiNode *n, const char *toast)
 	UiRect rect = n->rect;   // copy: the node lives in the frame arena
 
 	ui_arena_init(&s->overlay, s->overlay_buf, sizeof(s->overlay_buf));
-	UiNode *root = KIDS(BOX(&s->overlay, .dir = UI_ROW, .bg = UI_WHITE,
+	UiNode *root = CHILDREN(BOX(&s->overlay, .dir = UI_ROW, .bg = UI_WHITE,
 				.main = UI_MAIN_CENTER, .cross = UI_CROSS_CENTER),
-		TEXT(&s->overlay, toast, .size_pt = s->theme.font_btn,
+		TEXT(&s->overlay, toast, .size_pt = screen_toast_font(n),
 		     .align = UI_ALIGN_CENTER, .max_lines = 1));
 	ui_layout(root, &s->text, &s->overlay, rect);
 
@@ -256,10 +263,17 @@ int init_touch(const char *dev_path)
 
 // ---- network -------------------------------------------------------------
 
-static int fetch_dashboard(struct AppState *s)
+// Ask the server for a screen. The panel's geometry goes with the request:
+// the server scales its spacing to the width, and sends back a tree this
+// client only has to lay out and paint.
+static int fetch_ui(struct AppState *s)
 {
+	char path[128];
+	snprintf(path, sizeof(path), "/api/ui.php?w=%d&h=%d&dpi=%d",
+		 s->screen_w, s->screen_h, s->dpi);
+
 	struct HttpResponse resp;
-	if (http_get(s->server_url, "/api/dashboard.php", s->api_token, &resp) < 0) {
+	if (http_get(cur(s)->url, path, cur(s)->token, &resp) < 0) {
 		fprintf(stderr, "homesrv: fetch failed (network error), "
 			"attempting wifi reconnect\n");
 		int rc = system("wpa_cli -i wlan0 reassociate 2>/dev/null &");
@@ -270,19 +284,36 @@ static int fetch_dashboard(struct AppState *s)
 		fprintf(stderr, "homesrv: fetch failed (HTTP %d)\n", resp.status);
 		http_free_response(&resp); return -1;
 	}
-	if (json_parse_dashboard(resp.body, &s->data) < 0) {
-		fprintf(stderr, "homesrv: fetch failed (JSON parse error)\n");
+
+	// Parse once here, into an arena of its own, so a broken response is
+	// rejected before it replaces the screen that is currently working — and
+	// without disturbing the frame tree that hit testing is still holding.
+	void *probe_buf = malloc(UI_ARENA_BYTES);
+	if (!probe_buf) { http_free_response(&resp); return -1; }
+	UiArena probe;
+	ui_arena_init(&probe, probe_buf, UI_ARENA_BYTES);
+	char err[160];
+	UiNode *probe_root = ui_from_json(&probe, resp.body, NULL, err, sizeof(err));
+	free(probe_buf);
+	if (!probe_root) {
+		fprintf(stderr, "homesrv: fetch failed (%s)\n", err);
 		http_free_response(&resp); return -1;
 	}
+
+	char *copy = strdup(resp.body);
 	http_free_response(&resp);
-	s->data_loaded = 1;
+	if (!copy) { fprintf(stderr, "homesrv: out of memory\n"); return -1; }
+
+	free(s->ui_json);
+	s->ui_json = copy;
+	s->ui_loaded = 1;
 	return 0;
 }
 
 static int api_post(struct AppState *s, const char *path, const char *body)
 {
 	struct HttpResponse resp;
-	if (http_post(s->server_url, path, s->api_token, body, &resp) < 0) {
+	if (http_post(cur(s)->url, path, cur(s)->token, body, &resp) < 0) {
 		fprintf(stderr, "homesrv: POST %s (%s) failed (network error)\n",
 			path, body);
 		return -1;
@@ -297,26 +328,65 @@ static int api_post(struct AppState *s, const char *path, const char *body)
 	return 0;
 }
 
+// Point the client at another server: drop the tree the old one sent, so its
+// dashboard cannot linger under the new server's name, and ask for a fresh
+// one. The menu closes, because the answer to "did it work" is the dashboard.
+static void select_server(struct AppState *s, int index)
+{
+	if (index < 0 || index >= s->config.count) return;
+
+	fprintf(stderr, "homesrv: switching to server %d: %s (%s)\n", index + 1,
+		s->config.servers[index].name, s->config.servers[index].url);
+
+	s->server_index = index;
+	free(s->ui_json);
+	s->ui_json = NULL;
+	s->ui_loaded = 0;
+	s->offline = 0;
+	s->menu_open = 0;
+	s->refresh_pending = 1;
+
+	char msg[160];
+	snprintf(msg, sizeof(msg), "Connecting to %s...",
+		 s->config.servers[index].name);
+	render_message(s, msg);
+}
+
 // Every tap goes through here. Behaviour comes from the node's declared
 // action, so nothing in the touch path re-derives where anything is drawn.
 static void perform_action(struct AppState *s, const UiNode *n)
 {
 	const UiAction *act = n->action;
+
+	// Any action may carry optimistic feedback, not just a POST: an invisible
+	// target especially needs to show that the tap landed.
+	bool toasted = act->toast && *act->toast;
+	if (toasted) render_toast(s, n, act->toast);
+
 	switch (act->kind) {
 	case UI_ACT_POST:
-		if (act->toast && *act->toast) {
-			render_toast(s, n, act->toast);
-			sleep(2);
-		}
+		if (toasted) sleep(2);
 		if (api_post(s, act->path, act->body) == 0)
 			s->refresh_pending = 1;
 		break;
 	case UI_ACT_REFRESH:
+		fprintf(stderr, "homesrv: refresh requested\n");
 		s->refresh_pending = 1;
 		break;
 	case UI_ACT_QUIT:
 		fprintf(stderr, "homesrv: quit triggered\n");
 		g_running = 0;
+		break;
+	case UI_ACT_OPEN:
+		// Only the two screens the client itself draws; the dashboard is
+		// whatever the server last sent.
+		s->menu_open = act->target && strcmp(act->target, SCREEN_MENU) == 0;
+		fprintf(stderr, "homesrv: open %s\n",
+			s->menu_open ? SCREEN_MENU : SCREEN_DASHBOARD);
+		render_full_screen(s);
+		break;
+	case UI_ACT_SERVER:
+		select_server(s, act->target ? atoi(act->target) : 0);
 		break;
 	default:
 		break;
@@ -339,11 +409,15 @@ int main(int argc, char *argv[])
 	const char *base_dir = (argc > 1) ? argv[1] : "/mnt/onboard/.adds/homesrv";
 	snprintf(s.base_dir, sizeof(s.base_dir), "%s", base_dir);
 
-	if (load_config(&s) < 0) {
-		fprintf(stderr, "homesrv: failed to load config from %s/config\n",
-			s.base_dir);
+	char config_path[512];
+	snprintf(config_path, sizeof(config_path), "%s/config", s.base_dir);
+	if (config_load(config_path, &s.config) < 0) {
+		fprintf(stderr, "homesrv: no usable server in %s\n", config_path);
 		return 1;
 	}
+	for (int i = 0; i < s.config.count; i++)
+		fprintf(stderr, "homesrv: server %d: %s (%s)\n", i + 1,
+			s.config.servers[i].name, s.config.servers[i].url);
 
 	struct sigaction sa; memset(&sa, 0, sizeof(sa)); sa.sa_handler = sig_handler;
 	sigaction(SIGTERM, &sa, NULL);
@@ -372,7 +446,7 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "homesrv: checking wifi...\n");
 	for (int attempt = 0; attempt < 5; attempt++) {
 		struct HttpResponse pr;
-		if (http_get(s.server_url, "/api/ping.php", s.api_token, &pr) == 0
+		if (http_get(cur(&s)->url, "/api/ping.php", cur(&s)->token, &pr) == 0
 		    && pr.status == 200) {
 			http_free_response(&pr);
 			fprintf(stderr, "homesrv: wifi ok (attempt %d)\n", attempt + 1);
@@ -388,14 +462,14 @@ int main(int argc, char *argv[])
 		sleep(5);
 	}
 
-	if (fetch_dashboard(&s) != 0) {
+	if (fetch_ui(&s) != 0) {
 		char buf[128];
-		snprintf(buf, sizeof(buf), "Connecting to %s...", s.server_url);
+		snprintf(buf, sizeof(buf), "Connecting to %s...", cur(&s)->name);
 		render_message(&s, buf);
 		fbink_wait_for_complete(s.fbfd, LAST_MARKER);
 	}
 
-	if (s.data_loaded) {
+	if (s.ui_loaded) {
 		s.offline = 0;
 		s.last_refresh_success = time(NULL);
 		render_full_screen(&s);
@@ -414,14 +488,15 @@ int main(int argc, char *argv[])
 		int poll_rc = poll(has_touch ? &pfd : NULL, has_touch ? 1 : 0, timeout);
 		time_t now = time(NULL);
 
-		if (!s.data_loaded && now - s.last_refresh >= 15) {
+		if (!s.ui_loaded && !s.refresh_pending && !s.menu_open
+		    && now - s.last_refresh >= 15) {
 			conn_retries++;
 			char buf[128];
 			snprintf(buf, sizeof(buf), "Connecting to %s... (retry %d)",
-				 s.server_url, conn_retries);
+				 cur(&s)->name, conn_retries);
 			render_message(&s, buf);
 			fbink_wait_for_complete(s.fbfd, LAST_MARKER);
-			if (fetch_dashboard(&s) == 0) {
+			if (fetch_ui(&s) == 0) {
 				render_full_screen(&s);
 				fbink_wait_for_complete(s.fbfd, LAST_MARKER);
 			}
@@ -429,13 +504,14 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		if (s.data_loaded && (now - s.last_refresh >= 1800 || s.refresh_pending)) {
+		if (!s.menu_open
+		    && (s.refresh_pending || (s.ui_loaded && now - s.last_refresh >= 1800))) {
 			if (s.refresh_pending)
 				fprintf(stderr, "homesrv: refresh (user action)\n");
 			else
 				fprintf(stderr, "homesrv: refreshing... (interval=%lds)\n",
 					(long) (now - s.last_refresh));
-			if (fetch_dashboard(&s) == 0) {
+			if (fetch_ui(&s) == 0) {
 				fprintf(stderr, "homesrv: refresh ok\n");
 				s.offline = 0;
 				s.last_refresh_success = now;
@@ -443,14 +519,26 @@ int main(int argc, char *argv[])
 				s.refresh_pending = 0;
 			} else {
 				s.offline = 1;
+				s.refresh_pending = 0;
+				s.last_refresh = now;
 			}
-			render_full_screen(&s);
+			if (s.ui_loaded) {
+				render_full_screen(&s);
+			} else {
+				// Nothing to fall back on — usually a server just
+				// picked from the menu that is not answering. Say
+				// which one, and leave the corners reachable.
+				char msg[160];
+				snprintf(msg, sizeof(msg), "Cannot reach %s",
+					 cur(&s)->name);
+				render_message(&s, msg);
+			}
 			fbink_wait_for_complete(s.fbfd, LAST_MARKER);
 			continue;
 		}
 
 		// Full-screen flash every 2 hours to clear ghosting.
-		if (s.data_loaded && now - s.last_screen_refresh >= 7200) {
+		if (s.ui_loaded && !s.menu_open && now - s.last_screen_refresh >= 7200) {
 			fprintf(stderr, "homesrv: screen refresh (clear ghosting)\n");
 			FBInkConfig cc = g_cfg_flash;
 			cc.wfm_mode = WFM_GC16;
@@ -461,7 +549,7 @@ int main(int argc, char *argv[])
 		}
 
 		// Clock: repaint just that subtree on minute boundaries.
-		if (s.data_loaded) {
+		if (s.ui_loaded && !s.menu_open) {
 			struct tm tm_buf;
 			struct tm *tm = localtime_r(&now, &tm_buf);
 			if (last_minute != -1 && last_minute != tm->tm_min)
@@ -470,10 +558,10 @@ int main(int argc, char *argv[])
 		}
 
 		// Connectivity: repaint just the status line when it changes.
-		if (s.data_loaded && now - last_conn_check >= 10) {
+		if (s.ui_loaded && !s.menu_open && now - last_conn_check >= 10) {
 			struct HttpResponse pr;
 			int was_offline = s.offline;
-			if (http_get(s.server_url, "/api/ping.php", s.api_token, &pr) == 0
+			if (http_get(cur(&s)->url, "/api/ping.php", cur(&s)->token, &pr) == 0
 			    && pr.status == 200) {
 				s.offline = 0;
 				http_free_response(&pr);
@@ -537,6 +625,7 @@ int main(int argc, char *argv[])
 	fbink_refresh(s.fbfd, 0, 0, 0, 0, &g_cfg_flash);
 	fbink_wait_for_complete(s.fbfd, LAST_MARKER);
 
+	free(s.ui_json);
 	if (evdev) libevdev_free(evdev);
 	if (s.touch_fd >= 0) close(s.touch_fd);
 	if (s.font_loaded) fbink_free_ot_fonts();

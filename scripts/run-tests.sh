@@ -1,9 +1,11 @@
 #!/bin/sh
 # Golden layout tests.
 #
-# Renders every fixture at every device size and compares the computed rect of
-# every node against a checked-in dump. A layout regression shows up here, on
-# the desktop, instead of on the Kobo.
+# Builds every fixture's UI on the server side (bin/render-ui.php), renders it
+# at every device size, and compares the computed rect of every node against a
+# checked-in dump. A regression in either half — what the server describes or
+# how the client lays it out — shows up here, on the desktop, instead of on the
+# Kobo.
 #
 #   scripts/run-tests.sh build/homesrv-preview check    # compare (exit 1 on diff)
 #   scripts/run-tests.sh build/homesrv-preview update   # rewrite the goldens
@@ -11,6 +13,7 @@ set -eu
 
 BIN="$1"
 MODE="${2:-check}"
+PHP="${PHP:-php}"
 DIR="$(dirname "$0")/.."
 cd "$DIR"
 
@@ -25,29 +28,53 @@ GOLDEN=tests/golden
 mkdir -p "$GOLDEN"
 
 fail=0
+
+# Compare one dump against its golden (or update it).
+check_dump() {
+	name="$1"
+	out="build/layout-$name.json"
+	if [ "$MODE" = update ]; then
+		cp "$out" "$GOLDEN/$name.json"
+		echo "updated $GOLDEN/$name.json"
+	elif [ ! -f "$GOLDEN/$name.json" ]; then
+		echo "MISSING golden for $name (run: make golden)"
+		fail=1
+	elif diff -u "$GOLDEN/$name.json" "$out" > "build/diff-$name.txt" 2>&1; then
+		echo "ok      $name"
+	else
+		echo "FAIL    $name  (see build/diff-$name.txt)"
+		head -30 "build/diff-$name.txt"
+		fail=1
+	fi
+}
+
+# The menu is drawn by the client, from a config file, so it is checked the
+# same way the dashboard is — it is the one screen that has to work when the
+# server cannot be reached.
+for dev in $DEVICES; do
+	name="menu-$dev"
+	"$BIN" --screen menu --config fixtures/servers.config --device "$dev" \
+		--font fonts/DejaVuSans.ttf \
+		--font-bold fonts/DejaVuSans-Bold.ttf \
+		--out "build/test-$name.png" \
+		--dump-rects "build/layout-$name.json" 2>/dev/null
+	check_dump "$name"
+done
+
 for fixture in $FIXTURES; do
 	for dev in $DEVICES; do
 		name="$fixture-$dev"
 		out="build/layout-$name.json"
-		"$BIN" --json "fixtures/$fixture.json" --device "$dev" --now "$NOW" \
+		width="$("$BIN" --print-device "$dev" | cut -d' ' -f1)"
+		"$PHP" ../bin/render-ui.php "fixtures/$fixture.json" --width "$width" \
+			> "build/ui-$name.json"
+		"$BIN" --ui "build/ui-$name.json" --device "$dev" --now "$NOW" \
 			--font fonts/DejaVuSans.ttf \
 			--font-bold fonts/DejaVuSans-Bold.ttf \
 			--out "build/test-$name.png" \
 			--dump-rects "$out" 2>/dev/null
 
-		if [ "$MODE" = update ]; then
-			cp "$out" "$GOLDEN/$name.json"
-			echo "updated $GOLDEN/$name.json"
-		elif [ ! -f "$GOLDEN/$name.json" ]; then
-			echo "MISSING golden for $name (run: make golden)"
-			fail=1
-		elif diff -u "$GOLDEN/$name.json" "$out" > "build/diff-$name.txt" 2>&1; then
-			echo "ok      $name"
-		else
-			echo "FAIL    $name  (see build/diff-$name.txt)"
-			head -30 "build/diff-$name.txt"
-			fail=1
-		fi
+		check_dump "$name"
 	done
 done
 

@@ -1,6 +1,6 @@
 # HomeSrv Kobo client — build orchestration.
 
-VERSION        := 0.2.0
+VERSION        := 0.3.0
 
 NICKELTC_IMAGE ?= ghcr.io/pgaskin/nickeltc:1.0
 CROSS_TC       := arm-nickel-linux-gnueabihf
@@ -42,12 +42,16 @@ PODMAN_MAKE := podman run --rm \
 # The UI engine (tree, layout, text measurement, paint walk) is portable: it is
 # compiled unchanged into both the device binary and the host preview.
 UI_SRCS := src/ui.c src/ui_layout.c src/ui_paint.c src/ui_text.c \
-           src/ui_stbtt.c src/screens.c
+           src/ui_stbtt.c src/ui_json.c src/screens.c
 UB_SRCS := $(UNIBREAK_DIR)/linebreak.c $(UNIBREAK_DIR)/linebreakdata.c \
            $(UNIBREAK_DIR)/linebreakdef.c $(UNIBREAK_DIR)/unibreakbase.c \
            $(UNIBREAK_DIR)/unibreakdef.c
 
-SRCS := src/main.c src/http.c src/json.c src/paint_fbink.c \
+# Headers are listed as prerequisites too: without them, editing a struct or a
+# constant leaves a stale binary behind.
+HDRS := $(wildcard src/*.h)
+
+SRCS := src/main.c src/http.c src/config.c src/paint_fbink.c \
         $(UI_SRCS) $(UB_SRCS) $(CJSON_DIR)/cJSON.c
 OBJS := $(patsubst %.c,build/%.o,$(SRCS))
 
@@ -55,7 +59,7 @@ OBJS := $(patsubst %.c,build/%.o,$(SRCS))
 HOST_CC       ?= cc
 HOST_CFLAGS   ?= -Wall -Wextra -Wno-missing-field-initializers -O2 -std=gnu11 -g
 HOST_CPPFLAGS := -Isrc -I$(CJSON_DIR) -I$(STB_DIR) -I$(UNIBREAK_DIR)
-PREVIEW_SRCS  := src/preview.c src/paint_stb.c src/http.c src/json.c \
+PREVIEW_SRCS  := src/preview.c src/paint_stb.c src/http.c src/config.c \
                  $(UI_SRCS) $(UB_SRCS) $(CJSON_DIR)/cJSON.c
 PREVIEW_BIN   := build/homesrv-preview
 
@@ -65,6 +69,10 @@ PREVIEW_DEVICES ?= glo glohd
 FIXTURE         ?= typical
 # Fixed clock, so previews and golden files are reproducible.
 PREVIEW_NOW     ?= 1758880860
+# The UI itself comes from the server, so rendering a fixture means running the
+# server's builder over it first. No web server, no device, still about a second.
+PHP             ?= php
+RENDER_UI       := $(PHP) ../bin/render-ui.php
 
 DIST_APP := dist/.adds/homesrv
 DIST_NM  := dist/.adds/nm
@@ -115,7 +123,7 @@ $(FBINK_DIR)/Release/libfbink.a: | $(FBINK_DIR)
 
 app: build/homesrv
 
-build/homesrv: $(SRCS) $(FBINK_DIR)/Release/libfbink.a
+build/homesrv: $(SRCS) $(HDRS) $(FBINK_DIR)/Release/libfbink.a
 	mkdir -p build
 	$(PODMAN_MAKE) inner-app
 
@@ -139,8 +147,15 @@ install: dist
 		read srv; \
 		printf "API token (from HomeSrv Settings page): "; \
 		read tok; \
-		echo "SERVER_URL=$$srv" > "$(KOBO_MOUNT)/.adds/homesrv/config"; \
-		echo "API_TOKEN=$$tok" >> "$(KOBO_MOUNT)/.adds/homesrv/config"; \
+		cfg="$(KOBO_MOUNT)/.adds/homesrv/config"; \
+		echo "SERVER_1_NAME=Home" > "$$cfg"; \
+		echo "SERVER_1_URL=$$srv" >> "$$cfg"; \
+		echo "SERVER_1_TOKEN=$$tok" >> "$$cfg"; \
+		echo "" >> "$$cfg"; \
+		echo "# Add more servers to switch between from the menu:" >> "$$cfg"; \
+		echo "#SERVER_2_NAME=Test" >> "$$cfg"; \
+		echo "#SERVER_2_URL=" >> "$$cfg"; \
+		echo "#SERVER_2_TOKEN=" >> "$$cfg"; \
 	}
 	sync
 	@echo "installed; eject the Kobo and open the NickelMenu menu"
@@ -159,18 +174,34 @@ distclean: clean
 
 preview-bin: $(PREVIEW_BIN)
 
-$(PREVIEW_BIN): $(PREVIEW_SRCS) $(CJSON_DIR)/cJSON.c | $(FBINK_DIR)
+$(PREVIEW_BIN): $(PREVIEW_SRCS) $(HDRS) $(CJSON_DIR)/cJSON.c | $(FBINK_DIR)
 	mkdir -p build
 	$(HOST_CC) $(HOST_CPPFLAGS) $(HOST_CFLAGS) -o $@ $(PREVIEW_SRCS) -lm
 
+# SCREEN=menu previews the client-drawn menu instead of a fixture dashboard.
+SCREEN ?= dashboard
+
 preview: $(PREVIEW_BIN) $(FONTS)
+ifeq ($(SCREEN),menu)
 	@for dev in $(PREVIEW_DEVICES); do \
-		$(PREVIEW_BIN) --json fixtures/$(FIXTURE).json --device $$dev \
+		$(PREVIEW_BIN) --screen menu --config fixtures/servers.config \
+			--device $$dev $(PREVIEW_ARGS) \
+			--font $(FONTS_DIR)/$(FONT_NAME) \
+			--font-bold $(FONTS_DIR)/$(FONT_BOLD_NAME) \
+			--out build/preview-menu-$$dev.png || exit 1; \
+	done
+else
+	@for dev in $(PREVIEW_DEVICES); do \
+		width=$$($(PREVIEW_BIN) --print-device $$dev | cut -d' ' -f1) || exit 1; \
+		$(RENDER_UI) fixtures/$(FIXTURE).json --width $$width \
+			> build/ui-$(FIXTURE)-$$dev.json || exit 1; \
+		$(PREVIEW_BIN) --ui build/ui-$(FIXTURE)-$$dev.json --device $$dev \
 			--now $(PREVIEW_NOW) $(PREVIEW_ARGS) \
 			--font $(FONTS_DIR)/$(FONT_NAME) \
 			--font-bold $(FONTS_DIR)/$(FONT_BOLD_NAME) \
 			--out build/preview-$(FIXTURE)-$$dev.png || exit 1; \
 	done
+endif
 
 # Same, but pointed at a running server instead of a fixture.
 preview-live: $(PREVIEW_BIN) $(FONTS)
@@ -182,15 +213,19 @@ preview-live: $(PREVIEW_BIN) $(FONTS)
 		--out build/preview-live.png
 
 open-preview: preview
+ifeq ($(SCREEN),menu)
+	@xdg-open build/preview-menu-$(firstword $(PREVIEW_DEVICES)).png 2>/dev/null || true
+else
 	@xdg-open build/preview-$(FIXTURE)-$(firstword $(PREVIEW_DEVICES)).png 2>/dev/null || true
+endif
 
 # Golden layout tests: every node's computed rect, compared against a checked-in
 # dump. Catches layout regressions without a device and without eyeballing.
 test: $(PREVIEW_BIN) $(FONTS)
-	@scripts/run-tests.sh $(PREVIEW_BIN) check
+	@PHP="$(PHP)" scripts/run-tests.sh $(PREVIEW_BIN) check
 
 golden: $(PREVIEW_BIN) $(FONTS)
-	@scripts/run-tests.sh $(PREVIEW_BIN) update
+	@PHP="$(PHP)" scripts/run-tests.sh $(PREVIEW_BIN) update
 
 # ---- inner targets: run inside the NickelTC container only ----
 

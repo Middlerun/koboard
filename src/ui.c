@@ -262,13 +262,15 @@ static void ui_dump(UiBuf *b, const UiNode *n, int depth)
 
 	if (n->action && n->action->kind != UI_ACT_NONE) {
 		ub_fmt(b, ", \"action\": { \"kind\": %u", n->action->kind);
-		if (n->action->path) { ub_str(b, ", \"path\": "); ub_json_str(b, n->action->path); }
-		if (n->action->body) { ub_str(b, ", \"body\": "); ub_json_str(b, n->action->body); }
+		if (n->action->path)   { ub_str(b, ", \"path\": ");   ub_json_str(b, n->action->path); }
+		if (n->action->body)   { ub_str(b, ", \"body\": ");   ub_json_str(b, n->action->body); }
+		if (n->action->target) { ub_str(b, ", \"target\": "); ub_json_str(b, n->action->target); }
+		if (n->action->toast)  { ub_str(b, ", \"toast\": ");  ub_json_str(b, n->action->toast); }
 		ub_str(b, " }");
 	}
 
 	if (n->first) {
-		ub_str(b, ", \"kids\": [\n");
+		ub_str(b, ", \"children\": [\n");
 		for (const UiNode *c = n->first; c; c = c->next) {
 			ui_dump(b, c, depth + 1);
 			if (c->next) ub_str(b, ",");

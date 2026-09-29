@@ -217,9 +217,9 @@ static void measure_box(Ctx *c, UiNode *n, int max_w, int max_h,
 	bool main_definite  = own_main >= 0;
 	bool cross_definite = own_cross >= 0;
 
-	int nkids = 0;
-	for (UiNode *ch = n->first; ch; ch = ch->next) { ch->dropped = false; nkids++; }
-	int gaps = nkids > 1 ? (nkids - 1) * n->gap : 0;
+	int nchildren = 0;
+	for (UiNode *ch = n->first; ch; ch = ch->next) { ch->dropped = false; nchildren++; }
+	int gaps = nchildren > 1 ? (nchildren - 1) * n->gap : 0;
 
 	// --- pass 1: non-flex children ---
 	int fixed_total = 0, flex_total = 0;

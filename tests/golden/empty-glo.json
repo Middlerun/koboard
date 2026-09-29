@@ -1,28 +1,32 @@
-{ "kind": "box", "rect": [0, 0, 758, 1024], "bg": 255, "kids": [
-  { "kind": "box", "rect": [0, 0, 758, 101], "pad": [40, 25, 0, 25], "kids": [
-    { "kind": "box", "key": "clock", "rect": [25, 40, 708, 41], "dir": "row", "gap": 25, "cross": 3, "kids": [
-      { "kind": "text", "rect": [25, 40, 594, 41], "text": "Fri, Sep 26", "size": 14, "lines": 1, "maxLines": 1, "w": "flex:1" },
-      { "kind": "text", "rect": [644, 45, 89, 36], "text": "10:01", "size": 12, "lines": 1, "align": 2, "maxLines": 1 }
+{ "kind": "box", "rect": [0, 0, 758, 1024], "bg": 255, "children": [
+  { "kind": "box", "rect": [0, 0, 758, 968], "h": "flex:1", "children": [
+    { "kind": "box", "key": "clock", "rect": [0, 0, 758, 81], "dir": "row", "gap": 25, "cross": 3, "pad": [40, 25, 0, 25], "children": [
+      { "kind": "text", "rect": [25, 40, 583, 41], "text": "Fri, Sep 26", "size": 14, "lines": 1, "maxLines": 1, "w": "flex:1" },
+      { "kind": "text", "rect": [633, 40, 100, 41], "text": "10:01", "size": 14, "lines": 1, "align": 2, "maxLines": 1 }
     ] },
-    { "kind": "box", "rect": [25, 81, 708, 20], "h": "20" }
-  ] },
-  { "kind": "box", "rect": [0, 101, 758, 4], "h": "4", "bg": 64 },
-  { "kind": "box", "rect": [0, 105, 758, 30], "h": "30" },
-  { "kind": "box", "rect": [0, 135, 758, 833], "dir": "row", "h": "flex:1", "kids": [
-    { "kind": "box", "rect": [0, 135, 377, 833], "gap": 25, "clip": true, "w": "flex:1", "pad": [0, 25, 0, 25], "kids": [
-      { "kind": "text", "rect": [25, 135, 327, 41], "text": "TASKS", "size": 14, "lines": 1, "maxLines": 1 },
-      { "kind": "text", "rect": [25, 201, 327, 27], "text": "Nothing to do", "size": 9, "lines": 1, "maxLines": 1 }
+    { "kind": "box", "rect": [0, 81, 758, 20], "pad": [0, 25, 0, 25], "children": [
+      { "kind": "box", "rect": [25, 81, 708, 20], "h": "20" }
     ] },
-    { "kind": "box", "rect": [377, 135, 4, 833], "w": "4", "bg": 64 },
-    { "kind": "box", "rect": [381, 135, 377, 833], "gap": 4, "clip": true, "w": "flex:1", "pad": [0, 25, 0, 25], "kids": [
-      { "kind": "text", "rect": [406, 135, 327, 41], "text": "TODAY", "size": 14, "lines": 1, "maxLines": 1 },
-      { "kind": "text", "rect": [406, 180, 327, 48], "text": "Nothing scheduled", "size": 9, "lines": 1, "maxLines": 1, "pad": [21, 0, 0, 0] },
-      { "kind": "text", "rect": [406, 232, 327, 62], "text": "TOMORROW", "size": 14, "lines": 1, "maxLines": 1, "pad": [21, 0, 0, 0] },
-      { "kind": "text", "rect": [406, 298, 327, 48], "text": "Nothing scheduled", "size": 9, "lines": 1, "maxLines": 1, "pad": [21, 0, 0, 0] }
+    { "kind": "box", "rect": [0, 101, 758, 4], "h": "4", "bg": 64 },
+    { "kind": "box", "rect": [0, 105, 758, 30], "h": "30" },
+    { "kind": "box", "rect": [0, 135, 758, 833], "dir": "row", "h": "flex:1", "children": [
+      { "kind": "box", "rect": [0, 135, 377, 833], "gap": 25, "clip": true, "w": "flex:1", "pad": [0, 25, 0, 25], "children": [
+        { "kind": "text", "rect": [25, 135, 327, 41], "text": "TASKS", "size": 14, "lines": 1, "maxLines": 1 },
+        { "kind": "text", "rect": [25, 201, 327, 27], "text": "Nothing to do", "size": 9, "lines": 1, "maxLines": 1 }
+      ] },
+      { "kind": "box", "rect": [377, 135, 4, 833], "w": "4", "bg": 64 },
+      { "kind": "box", "rect": [381, 135, 377, 833], "gap": 4, "clip": true, "w": "flex:1", "pad": [0, 25, 0, 25], "children": [
+        { "kind": "text", "rect": [406, 135, 327, 41], "text": "TODAY", "size": 14, "lines": 1, "maxLines": 1 },
+        { "kind": "text", "rect": [406, 180, 327, 48], "text": "Nothing scheduled", "size": 9, "lines": 1, "maxLines": 1, "pad": [21, 0, 0, 0] },
+        { "kind": "text", "rect": [406, 232, 327, 62], "text": "TOMORROW", "size": 14, "lines": 1, "maxLines": 1, "pad": [21, 0, 0, 0] },
+        { "kind": "text", "rect": [406, 298, 327, 48], "text": "Nothing scheduled", "size": 9, "lines": 1, "maxLines": 1, "pad": [21, 0, 0, 0] }
+      ] }
     ] }
   ] },
-  { "kind": "box", "key": "status", "rect": [0, 968, 758, 56], "dir": "row", "main": 3, "cross": 3, "pad": [0, 25, 12, 25], "kids": [
-    { "kind": "text", "rect": [25, 991, 250, 21], "text": "Last refresh: 10:01  · Online", "size": 7, "lines": 1, "maxLines": 1, "fg": 128 },
-    { "kind": "box", "key": "quit", "rect": [663, 968, 70, 44], "w": "70", "h": "44", "action": { "kind": 3 } }
+  { "kind": "box", "key": "status", "rect": [0, 968, 758, 56], "dir": "row", "main": 3, "cross": 3, "pad": [0, 25, 12, 25], "children": [
+    { "kind": "box", "key": "refresh", "rect": [25, 968, 250, 44], "dir": "row", "cross": 3, "h": "44", "action": { "kind": 2, "toast": "Refreshing…" }, "children": [
+      { "kind": "text", "rect": [25, 991, 250, 21], "text": "Last refresh: 10:01  · Online", "size": 7, "lines": 1, "maxLines": 1, "fg": 128 }
+    ] },
+    { "kind": "box", "key": "menu", "rect": [663, 968, 70, 44], "w": "70", "h": "44", "action": { "kind": 4, "target": "menu" } }
   ] }
 ] }

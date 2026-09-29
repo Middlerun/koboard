@@ -5,23 +5,101 @@ it. Nothing positions itself; nothing tracks a `y` cursor; nothing hard-codes a
 touch rectangle. This document is the reference for that tree.
 
 The schema is a deliberate subset of CSS flexbox — enough for the dashboard,
-small enough to hold in your head. It maps 1:1 onto JSON, so the tree can later
-be produced by the server instead of by C without redesigning anything.
+small enough to hold in your head. It maps 1:1 onto JSON, and **the server is
+what produces it**: what the dashboard looks like is decided in
+`src/Ui/DashboardScreen.php`, not on the device. Changing the UI is a server
+edit; the client only has to be rebuilt when the *engine* changes.
 
 ## Pipeline
 
 ```
-screens.c          builds a tree from DashboardData
-  └─ ui_layout.c   one pass down (constraints), one pass back (sizes),
-                   one pass assigning absolute rects
-       └─ painter  paint_fbink.c on the device, paint_stb.c for the preview
-            └─ ui_hit_test()  maps a touch to the node that was actually drawn
+src/Ui/DashboardScreen.php   builds a tree from the dashboard data
+  └─ /api/ui.php             serves it as JSON  ─────────┐
+                                                         │  HTTP
+kobo/src/ui_json.c           ui_from_json()  ←───────────┘
+  └─ screens.c               wraps it in the client-owned chrome
+       └─ ui_layout.c        one pass down (constraints), one pass back
+                             (sizes), one pass assigning absolute rects
+            └─ painter       paint_fbink.c on the device,
+                             paint_stb.c for the preview
+                 └─ ui_hit_test()  maps a touch to the node that was drawn
 ```
 
 `ui_text.c` measures text for the layout. It re-implements FBInk's OpenType
 line-breaking arithmetic exactly (see the comment at the top of that file), so
 what the layout measures is what FBInk draws — and so the host preview can
 measure without a framebuffer.
+
+## The wire
+
+```
+GET /api/ui.php?w=758&h=1024&dpi=213      (X-Api-Token: ...)
+
+{ "schema": 1, "screen": "dashboard", "root": { ...node... } }
+```
+
+The client sends its panel geometry because spacing scales with the screen
+width; point sizes are resolved against the device's own DPI, so the server
+never deals in pixels for text. A `schema` newer than the client's
+`UI_SCHEMA_VERSION` is refused rather than half-parsed, and any property the
+client does not recognise is ignored — that is what lets the server describe
+something a slightly older client has never heard of.
+
+A response is parsed once, on arrival, before it is allowed to replace the
+screen that is currently working. After that it is re-parsed into the frame
+arena on every frame, so there is one code path and nothing to keep in sync.
+
+## What the client still owns
+
+The server sends the *body* of the screen. The client wraps it in the chrome
+that has to keep working when the server does not, and gives the body all the
+leftover height (`screen_frame()` in `screens.c`):
+
+```
+<server tree>            — h: flex:1, whatever /api/ui.php sent
+status row    KEY_STATUS — last refresh, online/offline, and the two corners
+```
+
+The status row carries the screen's only two fixed tap targets, both invisible:
+`KEY_REFRESH` at bottom left refetches immediately, `KEY_MENU` at bottom right
+opens the menu. They draw nothing and they are always there, including on a
+message screen — which is the point, because "this server is not answering" is
+exactly when you need to reach the menu and pick another one.
+
+The menu itself (`screen_menu()`) is client-drawn for the same reason: it lists
+the servers from the config file, and switching to one drops the old server's
+tree and refetches. While it is up it replaces the body, and nothing in the
+background repaints over it.
+
+Also client-side: the centred message used while connecting or when a response
+is refused (`screen_message()`), the refresh policy, and the tap toast — whose
+text comes from the server, in the action.
+
+## Client-side values
+
+The one thing the server cannot send is the time: it is already stale when the
+tree arrives, and it has to keep ticking between fetches. So the server sends a
+placeholder and the device substitutes its own clock, every frame, as the tree
+is parsed:
+
+| placeholder | becomes |
+|---|---|
+| `{clock:%a, %b %e}` | `Fri, Sep 26` — any strftime(3) format |
+| `{clock}` | `08:01` — `%H:%M` by default |
+
+That is what lets the clock live in the server's layout instead of the chrome:
+its wording, size and position are an edit to `DashboardScreen::clockRow()`.
+The device keeps the formatting honest in the one way it must — the value is
+the device's own clock, in the device's own timezone, so it stays right while
+the server is unreachable.
+
+A placeholder naming anything else is passed through untouched, which is why
+`overflowText`'s `{n}` (expanded later, by the layout engine) is unaffected.
+
+By convention the node showing the time carries `"key": "clock"`: that is what
+the client repaints on its own, once a minute, instead of redrawing the screen.
+Leave the key off and the time still updates — just only when something else
+redraws.
 
 ## Node kinds
 
@@ -57,6 +135,7 @@ background is a divider, and one without a background is a spacer.
 | main | `.main = UI_MAIN_CENTER` | `"main": 1` | `start`(0) `center`(1) `end`(2) `between`(3) |
 | cross | `.cross = UI_CROSS_CENTER` | `"cross": 2` | `stretch`(0) `start`(1) `center`(2) `end`(3) |
 | clip | `.clip = true` | `"clip": true` | drop whole children that do not fit |
+| children | `CHILDREN(box, ...)` | `"children": [...]` | the nested nodes, in paint order |
 | overflowText | `.overflow_text = "… +{n} more"` | `"overflowText"` | shown when `clip` dropped children; `{n}` is the count |
 
 ### text only
@@ -99,19 +178,23 @@ on top of it.
 
 ## Actions
 
-```c
-.action = ACTION(a, .kind = UI_ACT_POST,
-                    .path = "/api/tasks/complete.php",
-                    .body = ui_strf(a, "task_id=%d", task->id),
-                    .toast = "TASK COMPLETED!")
+```php
+'action' => Node::post('/api/tasks/complete.php', "task_id=$id", 'COMPLETED!')
 ```
 
 | kind | JSON | effect |
 |---|---|---|
 | `UI_ACT_POST` (1) | `{"kind":1,"path":...,"body":...}` | form-encoded POST, then refresh |
 | `UI_ACT_REFRESH` (2) | `{"kind":2}` | re-fetch and redraw |
-| `UI_ACT_QUIT` (3) | `{"kind":3}` | exit the app |
-| `UI_ACT_OPEN` (4) | `{"kind":4,"target":"..."}` | reserved for server-driven screens |
+| `UI_ACT_OPEN` (4) | `{"kind":4,"target":"menu"}` | switch to a client-drawn screen: `menu` or `dashboard` |
+| `UI_ACT_QUIT` (3) | — | exit the app |
+| `UI_ACT_SERVER` (5) | — | switch to the server at that index in the config, and refetch |
+
+The last two are **not accepted from the wire** — `ui_from_json()` parses an
+allow-list of the first three and drops the rest. Quitting belongs to the menu,
+and which servers exist is not something a server should get a say in. Neither
+costs the server anything: it can send the user to the menu with `UI_ACT_OPEN`,
+and the menu offers both.
 
 `toast` is optional optimistic feedback: the node's rect is replaced with that
 text while the request is in flight.
@@ -120,32 +203,44 @@ text while the request is in flight.
 contains the touch, so a touch target can never drift out of sync with what is
 on screen.
 
-## Building a tree
+## Authoring a screen
+
+Server-side, with `HomeSrv\Ui\Node` — the mirror of the `BOX`/`TEXT` macros:
+
+```php
+Node::box(['dir' => 'row', 'gap' => 8], [
+    Node::text('Mon', ['size' => 10, 'w' => Node::flex(1)]),
+    Node::text("$temp°", ['size' => 10, 'align' => Node::ALIGN_END]),
+]);
+```
+
+- Property names are the JSON ones; an unknown one throws rather than being
+  silently dropped on the device.
+- Lengths take an int (pixels) or `Node::flex(n)` / `Node::pct(n)` / `'auto'`.
+- `Node::post()` builds a POST action; the other two kinds are a literal
+  `['kind' => Node::ACT_REFRESH]`.
+- `Node::clock('%H:%M')` builds a clock placeholder.
+- `Screen::envelope($root)` wraps a root for the wire.
+
+Client-side, for the chrome only, with the C macros:
 
 ```c
-UiNode *row = KIDS(BOX(a, .dir = UI_ROW, .gap = 8),
+UiNode *row = CHILDREN(BOX(a, .dir = UI_ROW, .gap = 8),
         TEXT(a, "Mon", .size_pt = 10, .w = FLEX(1)),
         TEXTF(a, (.size_pt = 10, .align = UI_ALIGN_END), "%d°", temp));
 ```
 
 - `BOX` / `TEXT` take designated initialisers.
 - `TEXTF` takes a **parenthesised** property list, then a format string.
-- `KIDS(parent, ...)` appends children and returns the parent, so calls nest.
+- `CHILDREN(parent, ...)` appends children and returns the parent, so calls nest.
 - Every string is copied into the arena, so passing a stack buffer is safe.
 
 Memory comes from a per-frame arena that is reset each frame. Allocation never
 returns NULL: on exhaustion it returns scratch space and sets `arena.oom`, which
 is logged once per frame.
 
-## Going server-driven (not built)
+## Seeing a change without a device
 
-The tree is already JSON-shaped, and `ui_write_json()` emits exactly the format
-above (plus the computed `rect`, for tests). Making the server own the UI would
-need:
-
-1. `/api/ui.php` emitting this JSON instead of raw dashboard data.
-2. `ui_from_json()` on the device, over cJSON — the mirror of `ui_write_json()`.
-3. Pointing `preview --url` at `/api/ui.php`.
-
-Nothing in the schema, the layout engine, the painters or the touch handling
-would change. That is the point of writing it down this way.
+`bin/render-ui.php` runs the same builder on the command line, so a fixture can
+be turned into a tree with no web server and no Kobo. That is what
+`make -C kobo preview` and `make -C kobo test` do — see kobo/README.md.

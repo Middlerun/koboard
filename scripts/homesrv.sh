@@ -8,9 +8,17 @@ LOG="$BASE/homesrv.log"
 if [ ! -f "$BASE/config" ]; then
 	mkdir -p "$BASE"
 	cat > "$BASE/config" << 'EOF'
-# HomeSrv Kobo client config
-SERVER_URL=http://192.168.1.1:8080
-API_TOKEN=your_token_here
+# HomeSrv Kobo client config.
+#
+# One numbered block per server; the first is the one the app starts on, and
+# the menu (bottom-right corner of the screen) switches between them.
+SERVER_1_NAME=Home
+SERVER_1_URL=http://192.168.1.1:8080
+SERVER_1_TOKEN=your_token_here
+
+#SERVER_2_NAME=Test
+#SERVER_2_URL=http://192.168.1.1:8083
+#SERVER_2_TOKEN=your_test_token_here
 EOF
 	echo "[$(date '+%Y-%m-%d %H:%M:%S')] first run: config template created at $BASE/config" > "$LOG"
 fi

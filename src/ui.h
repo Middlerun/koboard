@@ -136,14 +136,15 @@ typedef enum {
 	UI_ACT_POST,      // form-encoded POST to `path` with `body`
 	UI_ACT_REFRESH,   // re-fetch and redraw
 	UI_ACT_QUIT,      // exit the app
-	UI_ACT_OPEN,      // switch to the named screen (reserved for server-driven UI)
+	UI_ACT_OPEN,      // switch to the screen named in `target`
+	UI_ACT_SERVER,    // talk to the server whose index is in `target`, and refetch
 } UiActionKind;
 
 typedef struct {
 	uint8_t     kind;
 	const char *path;    // UI_ACT_POST: request path
 	const char *body;    // UI_ACT_POST: form-encoded body
-	const char *target;  // UI_ACT_OPEN: screen name
+	const char *target;  // UI_ACT_OPEN: screen name. UI_ACT_SERVER: server index
 	const char *toast;   // optional: text to show in place of the node while the
 			     // request is in flight (optimistic feedback)
 } UiAction;
@@ -203,7 +204,7 @@ struct UiNode {
 
 // ---- building -----------------------------------------------------------
 //
-//   UiNode *row = KIDS(BOX(a, .dir = UI_ROW, .gap = 8),
+//   UiNode *row = CHILDREN(BOX(a, .dir = UI_ROW, .gap = 8),
 //           TEXT(a, "Mon", .size_pt = 10, .w = FLEX(1)),
 //           TEXTF(a, (.size_pt = 10), "%d\u00B0", temp));
 //
@@ -220,7 +221,7 @@ const UiAction *ui_action(UiArena *a, const UiAction *proto);
 
 #define BOX(a, ...)      ui_new((a), &(UiNode){ .kind = UI_BOX, __VA_ARGS__ })
 #define TEXT(a, s, ...)  ui_new((a), &(UiNode){ .kind = UI_TEXT, .text = (s), __VA_ARGS__ })
-#define KIDS(p, ...)     ui_addv((p), __VA_ARGS__, (UiNode *) NULL)
+#define CHILDREN(p, ...)     ui_addv((p), __VA_ARGS__, (UiNode *) NULL)
 #define ACTION(a, ...)   ui_action((a), &(UiAction){ __VA_ARGS__ })
 
 // TEXTF(arena, (.props...), "fmt", args...) — note the parenthesised property

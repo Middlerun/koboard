@@ -3,21 +3,25 @@
 
 #include <time.h>
 
-#include "json.h"
+#include "config.h"
 #include "paint_fbink.h"
 #include "screens.h"
 #include "ui.h"
 #include "ui_text.h"
 
-// Per-frame UI tree memory. The dashboard uses ~15 KB; the rest is headroom
-// for a busier day. Exhaustion is reported, never fatal.
-#define UI_ARENA_BYTES (256 * 1024)
+// Per-frame UI tree memory. The dashboard uses ~30 KB on a busy day; the rest
+// is headroom, sized so that a tree at ui_json.c's node ceiling (160 bytes a
+// node, plus its strings) still fits. Exhaustion is reported, never fatal.
+#define UI_ARENA_BYTES (512 * 1024)
 
 struct AppState {
 	char   base_dir[256];
-	char   server_url[256];
-	char   api_token[64];
 	char   font_path[512];
+
+	// Every server the config offers, and the one being talked to now. The
+	// menu switches between them without a restart.
+	struct Config config;
+	int    server_index;
 
 	int    fbfd;
 	int    font_loaded;
@@ -39,8 +43,15 @@ struct AppState {
 	UiArena      overlay;
 	uint8_t      overlay_buf[4096];
 
-	struct DashboardData data;
-	int    data_loaded;
+	// The last tree the server sent, as received. It is re-parsed into the
+	// frame arena on every frame, so there is exactly one copy of the UI and
+	// one code path that turns it into nodes.
+	char  *ui_json;
+	int    ui_loaded;
+
+	// The menu takes the whole screen while it is up, so the frame is built
+	// from it instead of from the server's tree.
+	int    menu_open;
 
 	time_t last_refresh;
 	time_t last_refresh_success;
@@ -49,7 +60,6 @@ struct AppState {
 	int    refresh_pending;
 };
 
-int  load_config(struct AppState *state);
 int  init_display(struct AppState *s);
 int  init_touch(const char *dev_path);
 
