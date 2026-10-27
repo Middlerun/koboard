@@ -7,8 +7,8 @@
 // Run this exactly once per tree. Trees are rebuilt from a reset arena every
 // frame, so that falls out naturally.
 
-#ifndef HOMESRV_UI_LAYOUT_H
-#define HOMESRV_UI_LAYOUT_H
+#ifndef KOBOARD_UI_LAYOUT_H
+#define KOBOARD_UI_LAYOUT_H
 
 #include "ui.h"
 #include "ui_text.h"

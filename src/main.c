@@ -52,12 +52,12 @@ int init_display(struct AppState *s)
 	g_cfg_du.wfm_mode = WFM_DU;
 
 	s->fbfd = fbink_open();
-	if (s->fbfd < 0) { fprintf(stderr, "homesrv: fbink_open failed\n"); return -1; }
+	if (s->fbfd < 0) { fprintf(stderr, "koboard: fbink_open failed\n"); return -1; }
 
 	FBInkConfig init_cfg = { 0 };
 	init_cfg.is_quiet = true;
 	if (fbink_init(s->fbfd, &init_cfg) < 0) {
-		fprintf(stderr, "homesrv: fbink_init failed\n"); return -1;
+		fprintf(stderr, "koboard: fbink_init failed\n"); return -1;
 	}
 
 	FBInkState st = { 0 };
@@ -65,7 +65,7 @@ int init_display(struct AppState *s)
 	s->screen_w = (int) st.view_width;
 	s->screen_h = (int) st.view_height;
 	s->dpi      = (int) st.screen_dpi;
-	fprintf(stderr, "homesrv: screen %dx%d dpi %d device %s\n",
+	fprintf(stderr, "koboard: screen %dx%d dpi %d device %s\n",
 		s->screen_w, s->screen_h, s->dpi, st.device_name);
 
 	theme_init(&s->theme, s->screen_w);
@@ -88,7 +88,7 @@ int init_display(struct AppState *s)
 		 s->base_dir);
 	if (fbink_add_ot_font(s->font_path, FNT_REGULAR) < 0 ||
 	    ui_text_load(&s->text, UI_FNT_REGULAR, s->font_path) < 0) {
-		fprintf(stderr, "homesrv: failed to load %s\n", s->font_path);
+		fprintf(stderr, "koboard: failed to load %s\n", s->font_path);
 		return -1;
 	}
 	s->font_loaded = 1;
@@ -97,7 +97,7 @@ int init_display(struct AppState *s)
 	snprintf(bold, sizeof(bold), "%s/fonts/DejaVuSans-Bold.ttf", s->base_dir);
 	if (fbink_add_ot_font(bold, FNT_BOLD) < 0 ||
 	    ui_text_load(&s->text, UI_FNT_BOLD, bold) < 0)
-		fprintf(stderr, "homesrv: no bold font at %s, using regular\n", bold);
+		fprintf(stderr, "koboard: no bold font at %s, using regular\n", bold);
 
 	s->painter = (FbPainter){
 		.fbfd = s->fbfd,
@@ -126,7 +126,7 @@ static UiNode *build_frame(struct AppState *s, const char *message)
 
 	if (s->menu_open) {
 		s->root = screen_menu(&s->arena, &s->theme, &s->config,
-				      s->server_index, HOMESRV_VERSION);
+				      s->server_index, KOBOARD_VERSION);
 		ui_layout(s->root, &s->text, &s->arena,
 			  (UiRect){ 0, 0, s->screen_w, s->screen_h });
 		return s->root;
@@ -137,7 +137,7 @@ static UiNode *build_frame(struct AppState *s, const char *message)
 	if (!message && s->ui_json) {
 		UiVars vars = { .now = ctx.now };
 		body = ui_from_json(&s->arena, s->ui_json, &vars, NULL, err, sizeof(err));
-		if (!body) fprintf(stderr, "homesrv: bad UI from server: %s\n", err);
+		if (!body) fprintf(stderr, "koboard: bad UI from server: %s\n", err);
 	}
 
 	// A message goes in the frame too, not instead of it: the corner targets
@@ -153,7 +153,7 @@ static UiNode *build_frame(struct AppState *s, const char *message)
 		  (UiRect){ 0, 0, s->screen_w, s->screen_h });
 
 	if (s->arena.oom)
-		fprintf(stderr, "homesrv: UI arena exhausted (%zu bytes) — "
+		fprintf(stderr, "koboard: UI arena exhausted (%zu bytes) — "
 			"frame may be incomplete\n", s->arena.cap);
 	return s->root;
 }
@@ -275,7 +275,7 @@ static void apply_policy(struct AppState *s, const UiEnvelope *env)
 	    || p.ping_seconds != s->policy.ping_seconds
 	    || p.flash_seconds != s->policy.flash_seconds
 	    || strcmp(p.ping_url, s->policy.ping_url) != 0)
-		fprintf(stderr, "homesrv: policy: refresh %ds, ping %s every %ds, "
+		fprintf(stderr, "koboard: policy: refresh %ds, ping %s every %ds, "
 			"flash %ds\n", p.refresh_seconds,
 			p.ping_url[0] ? p.ping_url : "(none)", p.ping_seconds,
 			p.flash_seconds);
@@ -298,15 +298,15 @@ static int fetch_ui(struct AppState *s)
 
 	struct HttpResponse resp;
 	if (http_get(url, cur(s)->token, &resp) < 0) {
-		fprintf(stderr, "homesrv: fetch %s failed (network error), "
+		fprintf(stderr, "koboard: fetch %s failed (network error), "
 			"attempting wifi reconnect\n", url);
 		snprintf(s->last_error, sizeof(s->last_error), "no connection");
 		int rc = system("wpa_cli -i wlan0 reassociate 2>/dev/null &");
-		fprintf(stderr, "homesrv: wifi reconnect rc=%d\n", rc);
+		fprintf(stderr, "koboard: wifi reconnect rc=%d\n", rc);
 		return -1;
 	}
 	if (resp.status != 200) {
-		fprintf(stderr, "homesrv: fetch %s failed (HTTP %d)\n", url,
+		fprintf(stderr, "koboard: fetch %s failed (HTTP %d)\n", url,
 			resp.status);
 		snprintf(s->last_error, sizeof(s->last_error), "HTTP %d", resp.status);
 		http_free_response(&resp); return -1;
@@ -325,14 +325,14 @@ static int fetch_ui(struct AppState *s)
 					  err, sizeof(err));
 	free(probe_buf);
 	if (!probe_root) {
-		fprintf(stderr, "homesrv: fetch %s failed (%s)\n", url, err);
+		fprintf(stderr, "koboard: fetch %s failed (%s)\n", url, err);
 		snprintf(s->last_error, sizeof(s->last_error), "%s", err);
 		http_free_response(&resp); return -1;
 	}
 
 	char *copy = strdup(resp.body);
 	http_free_response(&resp);
-	if (!copy) { fprintf(stderr, "homesrv: out of memory\n"); return -1; }
+	if (!copy) { fprintf(stderr, "koboard: out of memory\n"); return -1; }
 
 	free(s->ui_json);
 	s->ui_json = copy;
@@ -348,22 +348,22 @@ static int api_post(struct AppState *s, const char *path, const char *body)
 {
 	char url[512];
 	if (url_resolve(cur(s)->url, path, url, sizeof(url)) < 0) {
-		fprintf(stderr, "homesrv: POST %s: URL too long\n", path);
+		fprintf(stderr, "koboard: POST %s: URL too long\n", path);
 		return -1;
 	}
 
 	struct HttpResponse resp;
 	if (http_post(url, cur(s)->token, body, &resp) < 0) {
-		fprintf(stderr, "homesrv: POST %s (%s) failed (network error)\n",
+		fprintf(stderr, "koboard: POST %s (%s) failed (network error)\n",
 			url, body);
 		return -1;
 	}
 	if (resp.status != 200) {
-		fprintf(stderr, "homesrv: POST %s (%s) failed (HTTP %d)\n",
+		fprintf(stderr, "koboard: POST %s (%s) failed (HTTP %d)\n",
 			url, body, resp.status);
 		http_free_response(&resp); return -1;
 	}
-	fprintf(stderr, "homesrv: POST %s (%s) ok\n", url, body);
+	fprintf(stderr, "koboard: POST %s (%s) ok\n", url, body);
 	http_free_response(&resp);
 	return 0;
 }
@@ -375,7 +375,7 @@ static void select_server(struct AppState *s, int index)
 {
 	if (index < 0 || index >= s->config.count) return;
 
-	fprintf(stderr, "homesrv: switching to server %d: %s (%s)\n", index + 1,
+	fprintf(stderr, "koboard: switching to server %d: %s (%s)\n", index + 1,
 		s->config.servers[index].name, s->config.servers[index].url);
 
 	s->server_index = index;
@@ -412,18 +412,18 @@ static void perform_action(struct AppState *s, const UiNode *n)
 			s->refresh_pending = 1;
 		break;
 	case UI_ACT_REFRESH:
-		fprintf(stderr, "homesrv: refresh requested\n");
+		fprintf(stderr, "koboard: refresh requested\n");
 		s->refresh_pending = 1;
 		break;
 	case UI_ACT_QUIT:
-		fprintf(stderr, "homesrv: quit triggered\n");
+		fprintf(stderr, "koboard: quit triggered\n");
 		g_running = 0;
 		break;
 	case UI_ACT_OPEN:
 		// Only the two screens the client itself draws; the dashboard is
 		// whatever the server last sent.
 		s->menu_open = act->target && strcmp(act->target, SCREEN_MENU) == 0;
-		fprintf(stderr, "homesrv: open %s\n",
+		fprintf(stderr, "koboard: open %s\n",
 			s->menu_open ? SCREEN_MENU : SCREEN_DASHBOARD);
 		render_full_screen(s);
 		break;
@@ -440,7 +440,7 @@ static void perform_action(struct AppState *s, const UiNode *n)
 int main(int argc, char *argv[])
 {
 	if (argc > 1 && strcmp(argv[1], "--version") == 0) {
-		printf("homesrv-kobo %s (FBInk %s)\n", HOMESRV_VERSION, fbink_version());
+		printf("koboard-kobo %s (FBInk %s)\n", KOBOARD_VERSION, fbink_version());
 		return 0;
 	}
 
@@ -448,17 +448,17 @@ int main(int argc, char *argv[])
 	memset(&s, 0, sizeof(s));
 	s.last_refresh_success = time(NULL);
 
-	const char *base_dir = (argc > 1) ? argv[1] : "/mnt/onboard/.adds/homesrv";
+	const char *base_dir = (argc > 1) ? argv[1] : "/mnt/onboard/.adds/koboard";
 	snprintf(s.base_dir, sizeof(s.base_dir), "%s", base_dir);
 
 	char config_path[512];
 	snprintf(config_path, sizeof(config_path), "%s/config", s.base_dir);
 	if (config_load(config_path, &s.config) < 0) {
-		fprintf(stderr, "homesrv: no usable server in %s\n", config_path);
+		fprintf(stderr, "koboard: no usable server in %s\n", config_path);
 		return 1;
 	}
 	for (int i = 0; i < s.config.count; i++)
-		fprintf(stderr, "homesrv: server %d: %s (%s)\n", i + 1,
+		fprintf(stderr, "koboard: server %d: %s (%s)\n", i + 1,
 			s.config.servers[i].name, s.config.servers[i].url);
 
 	struct sigaction sa; memset(&sa, 0, sizeof(sa)); sa.sa_handler = sig_handler;
@@ -467,7 +467,7 @@ int main(int argc, char *argv[])
 	sigaction(SIGQUIT, &sa, NULL);
 
 	if (init_display(&s) < 0) {
-		fprintf(stderr, "homesrv: display init failed\n"); return 1;
+		fprintf(stderr, "koboard: display init failed\n"); return 1;
 	}
 
 	s.touch_fd = init_touch("/dev/input/event1");
@@ -487,14 +487,14 @@ int main(int argc, char *argv[])
 	}
 
 	apply_policy(&s, NULL);
-	render_message(&s, "Starting HomeSrv...");
+	render_message(&s, "Starting Koboard...");
 
 	// The first fetch doubles as the Wi-Fi check: there is no separate ping
 	// to try before the server has said where its ping is. fetch_ui() asks
 	// for a reassociate itself on a network error, so this only has to wait.
 	for (int attempt = 0; attempt < 5; attempt++) {
 		if (fetch_ui(&s) == 0) {
-			fprintf(stderr, "homesrv: first fetch ok (attempt %d)\n",
+			fprintf(stderr, "koboard: first fetch ok (attempt %d)\n",
 				attempt + 1);
 			break;
 		}
@@ -547,12 +547,12 @@ int main(int argc, char *argv[])
 			|| (s.ui_loaded
 			    && now - s.last_refresh >= s.policy.refresh_seconds))) {
 			if (s.refresh_pending)
-				fprintf(stderr, "homesrv: refresh (user action)\n");
+				fprintf(stderr, "koboard: refresh (user action)\n");
 			else
-				fprintf(stderr, "homesrv: refreshing... (interval=%lds)\n",
+				fprintf(stderr, "koboard: refreshing... (interval=%lds)\n",
 					(long) (now - s.last_refresh));
 			if (fetch_ui(&s) == 0) {
-				fprintf(stderr, "homesrv: refresh ok\n");
+				fprintf(stderr, "koboard: refresh ok\n");
 				s.offline = 0;
 				s.last_refresh_success = now;
 				s.last_refresh = now;
@@ -580,7 +580,7 @@ int main(int argc, char *argv[])
 		// Full-screen flash to clear ghosting, as often as the server asks.
 		if (s.ui_loaded && !s.menu_open && s.policy.flash_seconds > 0
 		    && now - s.last_screen_refresh >= s.policy.flash_seconds) {
-			fprintf(stderr, "homesrv: screen refresh (clear ghosting)\n");
+			fprintf(stderr, "koboard: screen refresh (clear ghosting)\n");
 			FBInkConfig cc = g_cfg_flash;
 			cc.wfm_mode = WFM_GC16;
 			cc.is_flashing = true;
@@ -650,19 +650,19 @@ int main(int argc, char *argv[])
 
 		int sx, sy;
 		transform_touch(touch_x, touch_y, &sx, &sy, s.screen_w, s.screen_h);
-		fprintf(stderr, "homesrv: touch raw=%d,%d -> %d,%d\n",
+		fprintf(stderr, "koboard: touch raw=%d,%d -> %d,%d\n",
 			touch_x, touch_y, sx, sy);
 
 		const UiNode *hit = ui_hit_test(s.root, sx, sy);
 		if (!hit) {
-			fprintf(stderr, "homesrv: touch hit nothing\n");
+			fprintf(stderr, "koboard: touch hit nothing\n");
 			continue;
 		}
-		fprintf(stderr, "homesrv: hit %s\n", hit->key ? hit->key : "(unkeyed)");
+		fprintf(stderr, "koboard: hit %s\n", hit->key ? hit->key : "(unkeyed)");
 		perform_action(&s, hit);
 	}
 
-	fprintf(stderr, "homesrv: clearing screen on exit\n");
+	fprintf(stderr, "koboard: clearing screen on exit\n");
 	fbink_set_bg_pen_gray(0xFFu, false, false);
 	fbink_cls(s.fbfd, &g_cfg_draw, NULL, false);
 	fbink_refresh(s.fbfd, 0, 0, 0, 0, &g_cfg_flash);

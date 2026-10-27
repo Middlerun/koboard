@@ -7,8 +7,8 @@
 # of on the Kobo. No server is involved: what a particular server *sends* is
 # that server's to test.
 #
-#   scripts/run-tests.sh build/homesrv-preview check    # compare (exit 1 on diff)
-#   scripts/run-tests.sh build/homesrv-preview update   # rewrite the goldens
+#   scripts/run-tests.sh build/koboard-preview check    # compare (exit 1 on diff)
+#   scripts/run-tests.sh build/koboard-preview update   # rewrite the goldens
 set -eu
 
 BIN="$1"

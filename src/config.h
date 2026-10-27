@@ -7,8 +7,8 @@
 // Parsing lives apart from main.c so the host preview can render the menu from
 // a real config file instead of imitating one.
 
-#ifndef HOMESRV_CONFIG_H
-#define HOMESRV_CONFIG_H
+#ifndef KOBOARD_CONFIG_H
+#define KOBOARD_CONFIG_H
 
 // Six is what fits on the menu screen without scrolling, which is well past
 // the two or three anyone actually has.
@@ -31,7 +31,7 @@ struct Config {
 // The file is `KEY=value` lines, `#` comments, in any order:
 //
 //   SERVER_1_NAME=Prod
-//   SERVER_1_URL=http://192.168.1.50:8082
+//   SERVER_1_URL=http://192.168.1.50:8080/dashboard
 //   SERVER_1_TOKEN=abc123
 //   SERVER_2_NAME=Test
 //   ...

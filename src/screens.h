@@ -16,8 +16,8 @@
 // Nothing here touches the framebuffer, so the host preview runs exactly this
 // code.
 
-#ifndef HOMESRV_SCREENS_H
-#define HOMESRV_SCREENS_H
+#ifndef KOBOARD_SCREENS_H
+#define KOBOARD_SCREENS_H
 
 #include <time.h>
 

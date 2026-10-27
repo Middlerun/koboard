@@ -36,5 +36,5 @@
     ] }
   ] },
   { "kind": "box", "rect": [25, 979, 708, 12], "h": "12" },
-  { "kind": "text", "rect": [25, 991, 708, 21], "text": "homesrv preview", "size": 7, "lines": 1, "align": 1, "maxLines": 1, "fg": 128 }
+  { "kind": "text", "rect": [25, 991, 708, 21], "text": "koboard preview", "size": 7, "lines": 1, "align": 1, "maxLines": 1, "fg": 128 }
 ] }

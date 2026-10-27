@@ -7,8 +7,8 @@
 //
 // Kept apart from main.c so the rules build, and are tested, on the host.
 
-#ifndef HOMESRV_POLICY_H
-#define HOMESRV_POLICY_H
+#ifndef KOBOARD_POLICY_H
+#define KOBOARD_POLICY_H
 
 #include "ui_json.h"
 

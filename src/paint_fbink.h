@@ -4,8 +4,8 @@
 // arrives as an absolute rect; converting that into top/left/right margins
 // happens once, here, instead of at every call site.
 
-#ifndef HOMESRV_PAINT_FBINK_H
-#define HOMESRV_PAINT_FBINK_H
+#ifndef KOBOARD_PAINT_FBINK_H
+#define KOBOARD_PAINT_FBINK_H
 
 #include "ui_paint.h"
 #include "ui_text.h"

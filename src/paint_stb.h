@@ -2,8 +2,8 @@
 // and writes it out as a PNG. Used by the preview binary; never built for the
 // device.
 
-#ifndef HOMESRV_PAINT_STB_H
-#define HOMESRV_PAINT_STB_H
+#ifndef KOBOARD_PAINT_STB_H
+#define KOBOARD_PAINT_STB_H
 
 #include "ui_paint.h"
 #include "ui_text.h"

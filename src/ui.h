@@ -1,4 +1,4 @@
-// Declarative UI tree for the HomeSrv Kobo client.
+// Declarative UI tree for Koboard.
 //
 // A frame is described as a tree of nodes; the layout engine turns it into an
 // absolute rect per node; a painter draws it. Nothing in this header knows
@@ -9,8 +9,8 @@
 // JSON (see docs/ui-schema.md) so the tree can later be produced by the
 // server instead of by C.
 
-#ifndef HOMESRV_UI_H
-#define HOMESRV_UI_H
+#ifndef KOBOARD_UI_H
+#define KOBOARD_UI_H
 
 #include <stdbool.h>
 #include <stddef.h>

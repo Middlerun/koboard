@@ -8,8 +8,8 @@
 // Everything is allocated in the frame arena, so there is nothing to free: the
 // tree dies with the next ui_arena_reset().
 
-#ifndef HOMESRV_UI_JSON_H
-#define HOMESRV_UI_JSON_H
+#ifndef KOBOARD_UI_JSON_H
+#define KOBOARD_UI_JSON_H
 
 #include <time.h>
 

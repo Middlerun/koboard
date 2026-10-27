@@ -7,8 +7,8 @@
 // Kept apart from main.c so it builds on the host, where a uinput device can
 // stand in for the panel.
 
-#ifndef HOMESRV_TOUCH_H
-#define HOMESRV_TOUCH_H
+#ifndef KOBOARD_TOUCH_H
+#define KOBOARD_TOUCH_H
 
 #include "libevdev/libevdev.h"
 

@@ -136,7 +136,7 @@ int url_parse(const char *url, struct Url *out)
 	if (!url) return -1;
 
 	if (strncmp(url, "https://", 8) == 0) {
-		fprintf(stderr, "homesrv: %s: https is not supported, "
+		fprintf(stderr, "koboard: %s: https is not supported, "
 			"only http://\n", url);
 		return -1;
 	}

@@ -8,8 +8,8 @@
 // Only http:// is supported. There is no TLS: on a home network that is the
 // usual trade, but it does mean the token crosses the wire in the clear.
 
-#ifndef HOMESRV_HTTP_H
-#define HOMESRV_HTTP_H
+#ifndef KOBOARD_HTTP_H
+#define KOBOARD_HTTP_H
 
 #include <stddef.h>
 

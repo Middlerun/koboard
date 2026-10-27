@@ -72,7 +72,7 @@ static void fb_text(void *ctx, UiRect r, const char *text, const UiTextRun *run)
 	fbink_set_bg_pen_gray(0xFFu, false, false);
 
 	if (bottom < 0) {
-		fprintf(stderr, "homesrv: print_ot failed (%d) at %d,%d %dx%d "
+		fprintf(stderr, "koboard: print_ot failed (%d) at %d,%d %dx%d "
 			"%dpt fg=%u bg=%u: %.40s\n",
 			bottom, r.x, r.y, r.w, r.h, run->size_pt,
 			run->gray, run->bg_gray, text);
@@ -83,7 +83,7 @@ static void fb_text(void *ctx, UiRect r, const char *text, const UiTextRun *run)
 	// rather than let the layout drift silently.
 	if (fit.rendered_lines && fit.rendered_lines != run->max_lines) {
 		fp->mismatches++;
-		fprintf(stderr, "homesrv: line mismatch (measured %d, drew %u) "
+		fprintf(stderr, "koboard: line mismatch (measured %d, drew %u) "
 			"at %d,%d %dx%d %dpt: %.40s\n",
 			run->max_lines, fit.rendered_lines,
 			r.x, r.y, r.w, r.h, run->size_pt, text);

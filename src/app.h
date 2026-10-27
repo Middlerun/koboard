@@ -1,5 +1,5 @@
-#ifndef HOMESRV_APP_H
-#define HOMESRV_APP_H
+#ifndef KOBOARD_APP_H
+#define KOBOARD_APP_H
 
 #include <time.h>
 

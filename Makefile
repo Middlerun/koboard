@@ -1,4 +1,4 @@
-# HomeSrv Kobo client — build orchestration.
+# Koboard — build orchestration.
 
 VERSION        := 0.3.0
 
@@ -26,7 +26,7 @@ UNIBREAK_DIR   := $(FBINK_DIR)/libunibreak/src
 STB_DIR        := $(FBINK_DIR)/stb
 CPPFLAGS       += -I$(FBINK_DIR) -I$(CJSON_DIR) -I$(STB_DIR) -I$(UNIBREAK_DIR) \
                   -I$(FBINK_DIR)/libevdev-staged/include/libevdev-1.0 \
-                  -DHOMESRV_VERSION='"$(VERSION)"'
+                  -DKOBOARD_VERSION='"$(VERSION)"'
 LDLIBS         += -lm -lrt
 EVDEV_LDFLAGS  := -L$(FBINK_DIR)/libevdev-staged/lib
 EVDEV_LIBS     := -l:libevdev.a
@@ -62,7 +62,7 @@ HOST_CFLAGS   ?= -Wall -Wextra -Wno-missing-field-initializers -O2 -std=gnu11 -g
 HOST_CPPFLAGS := -Isrc -I$(CJSON_DIR) -I$(STB_DIR) -I$(UNIBREAK_DIR)
 PREVIEW_SRCS  := src/preview.c src/paint_stb.c src/http.c src/config.c \
                  $(UI_SRCS) $(UB_SRCS) $(CJSON_DIR)/cJSON.c
-PREVIEW_BIN   := build/homesrv-preview
+PREVIEW_BIN   := build/koboard-preview
 
 # Which screens to render for `make preview`; both by default, so a layout is
 # never tuned for one panel by accident.
@@ -74,7 +74,7 @@ PREVIEW_NOW     ?= 1758880860
 # tree file instead (a server's own output, say).
 UI              ?= fixtures/$(FIXTURE).json
 
-DIST_APP := dist/.adds/homesrv
+DIST_APP := dist/.adds/koboard
 DIST_NM  := dist/.adds/nm
 
 .PHONY: all toolchain fbink font app dist install clean distclean \
@@ -121,20 +121,20 @@ fbink: $(FBINK_DIR)/Release/libfbink.a
 $(FBINK_DIR)/Release/libfbink.a: | $(FBINK_DIR)
 	$(PODMAN_MAKE) inner-fbink
 
-app: build/homesrv
+app: build/koboard
 
-build/homesrv: $(SRCS) $(HDRS) $(FBINK_DIR)/Release/libfbink.a
+build/koboard: $(SRCS) $(HDRS) $(FBINK_DIR)/Release/libfbink.a
 	mkdir -p build
 	$(PODMAN_MAKE) inner-app
 
-dist: build/homesrv scripts/homesrv.sh nm/homesrv $(FONTS)
+dist: build/koboard scripts/koboard.sh nm/koboard $(FONTS)
 	rm -rf dist
 	mkdir -p $(DIST_APP)/bin $(DIST_APP)/fonts $(DIST_NM)
-	cp build/homesrv $(DIST_APP)/bin/homesrv
-	cp scripts/homesrv.sh $(DIST_APP)/homesrv.sh
+	cp build/koboard $(DIST_APP)/bin/koboard
+	cp scripts/koboard.sh $(DIST_APP)/koboard.sh
 	cp $(FONTS) $(DIST_APP)/fonts/
-	cp nm/homesrv $(DIST_NM)/homesrv
-	tar -czf dist/homesrv-kobo-$(VERSION).tgz -C dist .adds
+	cp nm/koboard $(DIST_NM)/koboard
+	tar -czf dist/koboard-$(VERSION).tgz -C dist .adds
 	@echo "dist/ staged; copy dist/.adds onto the Kobo or run 'make install'"
 
 install: dist
@@ -142,12 +142,12 @@ install: dist
 		{ echo "error: no Kobo mounted at $(KOBO_MOUNT) (override with KOBO_MOUNT=...)"; exit 1; }
 	mkdir -p "$(KOBO_MOUNT)/.adds"
 	cp -r dist/.adds/. "$(KOBO_MOUNT)/.adds/"
-	@test -f "$(KOBO_MOUNT)/.adds/homesrv/config" || { \
-		printf "Screen URL (e.g. http://192.168.1.50:8082/api/ui.php): "; \
+	@test -f "$(KOBO_MOUNT)/.adds/koboard/config" || { \
+		printf "Screen URL (e.g. http://192.168.1.10:8080/dashboard): "; \
 		read srv; \
-		printf "API token (from HomeSrv Settings page): "; \
+		printf "API token (leave blank if the server needs none): "; \
 		read tok; \
-		cfg="$(KOBO_MOUNT)/.adds/homesrv/config"; \
+		cfg="$(KOBO_MOUNT)/.adds/koboard/config"; \
 		echo "SERVER_1_NAME=Home" > "$$cfg"; \
 		echo "SERVER_1_URL=$$srv" >> "$$cfg"; \
 		echo "SERVER_1_TOKEN=$$tok" >> "$$cfg"; \
@@ -202,7 +202,7 @@ endif
 
 # Same, but fetched from a running server, the way the device fetches it.
 preview-live: $(PREVIEW_BIN) $(FONTS)
-	@test -n "$(URL)" || { echo "usage: make preview-live URL=http://host:8082/api/ui.php [TOKEN=...]"; exit 1; }
+	@test -n "$(URL)" || { echo "usage: make preview-live URL=http://host:8080/dashboard [TOKEN=...]"; exit 1; }
 	$(PREVIEW_BIN) --url "$(URL)" --token "$(TOKEN)" \
 		--device $(firstword $(PREVIEW_DEVICES)) \
 		--font $(FONTS_DIR)/$(FONT_NAME) \
@@ -245,9 +245,9 @@ inner-app:
 	$(foreach src,$(SRCS),\
 		$(CROSS_TC)-gcc $(CPPFLAGS) $(CFLAGS) -c $(src) -o build/$(src:.c=.o) &&) true
 	$(CROSS_TC)-gcc $(CPPFLAGS) $(CFLAGS) \
-		-o build/homesrv $(OBJS) \
+		-o build/koboard $(OBJS) \
 		$(FBINK_DIR)/Release/libfbink.a \
 		$(FBINK_DIR)/libi2c-staged/lib/libi2c.a \
 		$(EVDEV_LDFLAGS) $(EVDEV_LIBS) \
 		$(LDLIBS)
-	$(CROSS_TC)-strip --strip-unneeded build/homesrv
+	$(CROSS_TC)-strip --strip-unneeded build/koboard

@@ -16,8 +16,8 @@
 //   advance    = round(scale * adv) + round(scale * kern)
 // and lines are found by first fit over libunibreak's break opportunities.
 
-#ifndef HOMESRV_UI_TEXT_H
-#define HOMESRV_UI_TEXT_H
+#ifndef KOBOARD_UI_TEXT_H
+#define KOBOARD_UI_TEXT_H
 
 #include <stdbool.h>
 #include <stddef.h>

@@ -13,11 +13,11 @@ int touch_grab(struct libevdev *evdev)
 	// when the fd closes, so even a crash cannot leave the device held.
 	int rc = libevdev_grab(evdev, LIBEVDEV_GRAB);
 	if (rc < 0)
-		fprintf(stderr, "homesrv: could not grab the touchscreen (%s); "
+		fprintf(stderr, "koboard: could not grab the touchscreen (%s); "
 			"Nickel will replay these touches when it resumes\n",
 			strerror(-rc));
 	else
-		fprintf(stderr, "homesrv: touchscreen grabbed\n");
+		fprintf(stderr, "koboard: touchscreen grabbed\n");
 	return rc;
 }
 
@@ -58,7 +58,7 @@ void touch_wait_for_lift(struct libevdev *evdev, int fd, int down, int timeout_m
 
 		int waited = elapsed_ms(&start);
 		if (waited >= timeout_ms) {
-			fprintf(stderr, "homesrv: finger still down after %d ms; "
+			fprintf(stderr, "koboard: finger still down after %d ms; "
 				"releasing the touchscreen anyway\n", timeout_ms);
 			return;
 		}

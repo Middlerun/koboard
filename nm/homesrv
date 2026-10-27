@@ -1,6 +1,0 @@
-# HomeSrv Kobo client — NickelMenu config.
-# Install to /mnt/onboard/.adds/nm/homesrv
-
-menu_item :main :HomeSrv         :nickel_wifi :autoconnect
-  chain_success                  :cmd_spawn   :quiet:/bin/sh /mnt/onboard/.adds/homesrv/homesrv.sh
-menu_item :main :HomeSrv Version :cmd_output  :2000:/mnt/onboard/.adds/homesrv/bin/homesrv --version

@@ -4,8 +4,8 @@
 // device (FBInk) and the host preview (stb_truetype into a bitmap). That is
 // what lets `make preview` exercise the real layout code.
 
-#ifndef HOMESRV_UI_PAINT_H
-#define HOMESRV_UI_PAINT_H
+#ifndef KOBOARD_UI_PAINT_H
+#define KOBOARD_UI_PAINT_H
 
 #include "ui.h"
 

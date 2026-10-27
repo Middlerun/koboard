@@ -128,7 +128,7 @@ UiNode *screen_menu(UiArena *a, const struct Theme *t, const struct Config *cfg,
 	ui_add(root, BOX(a, .h = PX(12)));
 	ui_add(root, TEXTF(a, (.size_pt = t->font_status, .fg = UI_MED,
 			       .align = UI_ALIGN_CENTER, .max_lines = 1),
-			   "homesrv %s", version ? version : "?"));
+			   "koboard %s", version ? version : "?"));
 	return root;
 }
 

@@ -1,0 +1,6 @@
+# Koboard — NickelMenu config.
+# Install to /mnt/onboard/.adds/nm/koboard
+
+menu_item :main :Koboard         :nickel_wifi :autoconnect
+  chain_success                  :cmd_spawn   :quiet:/bin/sh /mnt/onboard/.adds/koboard/koboard.sh
+menu_item :main :Koboard Version :cmd_output  :2000:/mnt/onboard/.adds/koboard/bin/koboard --version

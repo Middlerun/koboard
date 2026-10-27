@@ -43,7 +43,7 @@ void policy_from_envelope(struct Policy *p, const UiEnvelope *env,
 	struct Url u;
 	if (url_resolve(screen_url, env->ping, p->ping_url, sizeof(p->ping_url)) < 0
 	    || url_parse(p->ping_url, &u) < 0) {
-		fprintf(stderr, "homesrv: ignoring unusable ping URL %s\n", env->ping);
+		fprintf(stderr, "koboard: ignoring unusable ping URL %s\n", env->ping);
 		p->ping_url[0] = '\0';
 		return;
 	}

@@ -4,10 +4,11 @@
 // screens.c / ui_layout.c / ui_text.c, so a layout that looks right here looks
 // right there. Only the painter differs.
 //
-//   php bin/render-ui.php fixtures/typical.json | homesrv-preview --ui -
-//   homesrv-preview --url http://localhost:8082/api/ui.php --device glohd
-//   homesrv-preview --ui tree.json --dump-rects -   # layout as JSON, no pixels
-//   homesrv-preview --screen menu --config fixtures/servers.config
+//   koboard-preview --ui fixtures/typical.json
+//   my-server --dump-screen | koboard-preview --ui -
+//   koboard-preview --url http://localhost:8080/dashboard --device glohd
+//   koboard-preview --ui tree.json --dump-rects -   # layout as JSON, no pixels
+//   koboard-preview --screen menu --config fixtures/servers.config
 
 #include "config.h"
 #include "http.h"
@@ -89,7 +90,7 @@ static char *read_file(const char *path, size_t *len)
 static void usage(void)
 {
 	fprintf(stderr,
-		"usage: homesrv-preview [options]\n"
+		"usage: koboard-preview [options]\n"
 		"  --ui FILE         UI JSON to render ('-' for stdin)\n"
 		"  --screen NAME     dashboard (default) | menu\n"
 		"  --config FILE     server list for --screen menu\n"
