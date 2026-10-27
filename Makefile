@@ -14,8 +14,6 @@ CJSON_DIR      := vendor/cJSON
 
 FONT_NAME      := DejaVuSans.ttf
 FONT_BOLD_NAME := DejaVuSans-Bold.ttf
-FONT_VER       := version_2_37
-FONT_ZIP_URL   := https://github.com/dejavu-fonts/dejavu-fonts/releases/download/$(FONT_VER)/dejavu-fonts-ttf-2.37.zip
 FONTS_DIR      := fonts
 FONTS          := $(FONTS_DIR)/$(FONT_NAME) $(FONTS_DIR)/$(FONT_BOLD_NAME)
 
@@ -97,20 +95,18 @@ $(CJSON_DIR)/cJSON.c $(CJSON_DIR)/cJSON.h:
 
 vendor: $(FBINK_DIR) $(CJSON_DIR)/cJSON.c
 
-# One download provides both faces, tracked with a stamp so make does not try
-# to run the recipe once per output file.
+# The fonts are DejaVu Sans with the weather glyphs from Noto Emoji merged in
+# (FBInk's fbink_add_ot_font replaces rather than appends, so they can't be a
+# separate fallback). scripts/make-font.sh reproduces that; the stamp keeps make
+# from re-downloading on every build once the fonts are present. Run
+# scripts/make-font.sh directly to regenerate a checked-in font.
 $(FONTS): $(FONTS_DIR)/.dejavu-stamp
-$(FONTS_DIR)/.dejavu-stamp:
+$(FONTS_DIR)/.dejavu-stamp: scripts/make-font.sh scripts/merge-emoji.py
 	@mkdir -p $(FONTS_DIR)
 	@if [ -f "$(FONTS_DIR)/$(FONT_NAME)" ] && [ -f "$(FONTS_DIR)/$(FONT_BOLD_NAME)" ]; then \
-		echo "fonts already present, skipping download"; \
+		echo "fonts present; run scripts/make-font.sh to regenerate"; \
 	else \
-		echo "downloading DejaVu $(FONT_VER)..."; \
-		curl -sL "$(FONT_ZIP_URL)" -o $(FONTS_DIR)/dejavu-fonts.zip && \
-		unzip -o -j $(FONTS_DIR)/dejavu-fonts.zip \
-			"dejavu-fonts-ttf-2.37/ttf/$(FONT_NAME)" \
-			"dejavu-fonts-ttf-2.37/ttf/$(FONT_BOLD_NAME)" -d $(FONTS_DIR)/ && \
-		rm -f $(FONTS_DIR)/dejavu-fonts.zip; \
+		scripts/make-font.sh; \
 	fi
 	@touch $@
 

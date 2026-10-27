@@ -59,7 +59,7 @@ Any language will do — it's JSON over plain HTTP. The full reference, from nod
 
 To see a tree without a Kobo, save it to a file and run `make preview UI=tree.json`, or point the preview at your running server with `make preview-live URL=… TOKEN=…`. See [Preview](#preview-no-device-needed).
 
-HomeSrv — a household task tracker, and where Koboard started — is one such server: its dashboard is built in PHP, and the trees in `fixtures/` are recordings of it.
+[HomeSrv](https://github.com/Middlerun/homesrv) — a household task tracker, and where Koboard started — is one such server: its dashboard is built in PHP, and the trees in `fixtures/` are recordings of it.
 
 ## How it works
 
@@ -86,7 +86,7 @@ The client wraps the server's tree in the little it still owns: the status line 
 - `fixtures/servers.config` — server list for the menu preview and its goldens
 - `tests/golden/` — expected layout rects, compared by `make test`
 - `tests/unit.c` — unit tests for URLs, the envelope and the refresh policy
-- `fonts/DejaVuSans*.ttf` — bundled fonts
+- `fonts/DejaVuSans*.ttf` — bundled fonts (DejaVu Sans, with weather symbols merged in from Noto Emoji — see [Fonts](#fonts))
 - `scripts/koboard.sh` — launcher: pauses Nickel, runs Koboard, resumes Nickel
 - `nm/koboard` — NickelMenu config (main menu entries)
 - `Makefile` — build orchestration via podman/NickelTC
@@ -98,6 +98,23 @@ The client wraps the server's tree in the little it still owns: the status line 
 - podman (for the cross-compiler)
 - git, curl
 - a C compiler, for the host preview and tests
+- python3 + fonttools — only to regenerate the bundled fonts; the fonts are checked in, so a normal build does not need it
+
+## Fonts
+
+Text is drawn in DejaVu Sans, regular and bold. On top of DejaVu's own coverage, the bundled fonts carry a set of weather symbols merged in from Noto Emoji, so a server can use them in any text node — a forecast is one of the most common things a dashboard shows:
+
+☀ ☁ ☂ ☔ ⚡ ⛅ ⛈ ❄ ❆ 🌤 🌥 🌦 🌧 🌨 🌩 🌪 🌫 💧
+
+DejaVu has no glyph at all for most of these, such as fog (🌫), drizzle (🌧) and the droplet (💧). For the few it does have, Noto's nicer versions replace its own — except ❆, which Noto lacks, so DejaVu's stays.
+
+They can't ship as a second font: FBInk's `fbink_add_ot_font()` *replaces* the font for a given style rather than appending a fallback, so loading an emoji font after DejaVu silently drops DejaVu and the whole screen goes blank. Instead the symbols are baked into the DejaVu files themselves. `scripts/make-font.sh` reproduces that: it downloads DejaVu Sans and Noto Emoji, subsets Noto Emoji down to the symbols wanted, and copies those glyphs over DejaVu's own for the same codepoints — into both the regular and bold faces. The result is checked in, so building and testing need no Python:
+
+```bash
+scripts/make-font.sh   # regenerates fonts/DejaVuSans.ttf and fonts/DejaVuSans-Bold.ttf
+```
+
+To offer servers a different set of symbols, change `EMOJI_CODEPOINTS` in `scripts/merge-emoji.py`, run it again, and update the list above.
 
 ## Build
 
@@ -216,4 +233,4 @@ Delete `.adds/koboard/` and `.adds/nm/koboard` from the Kobo.
 
 Koboard is licensed under the GNU General Public License, version 3 — see [LICENSE](LICENSE). It statically links [FBInk](https://github.com/NiLuJe/FBInk), which is GPLv3, so the binary has to be too.
 
-Bundled and fetched components keep their own licences: cJSON (MIT), stb (MIT or public domain), libunibreak (zlib), libevdev (MIT), and the DejaVu fonts (Bitstream Vera / Arev licence).
+Bundled and fetched components keep their own licences: cJSON (MIT), stb (MIT or public domain), libunibreak (zlib), libevdev (MIT), the DejaVu fonts (Bitstream Vera / Arev licence), and Noto Emoji (SIL Open Font License 1.1) — the latter contributes the weather symbols merged into the bundled DejaVu files.
