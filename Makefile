@@ -51,7 +51,8 @@ UB_SRCS := $(UNIBREAK_DIR)/linebreak.c $(UNIBREAK_DIR)/linebreakdata.c \
 # constant leaves a stale binary behind.
 HDRS := $(wildcard src/*.h)
 
-SRCS := src/main.c src/http.c src/config.c src/paint_fbink.c \
+SRCS := src/main.c src/http.c src/config.c src/policy.c src/touch.c \
+        src/paint_fbink.c \
         $(UI_SRCS) $(UB_SRCS) $(CJSON_DIR)/cJSON.c
 OBJS := $(patsubst %.c,build/%.o,$(SRCS))
 
@@ -69,10 +70,9 @@ PREVIEW_DEVICES ?= glo glohd
 FIXTURE         ?= typical
 # Fixed clock, so previews and golden files are reproducible.
 PREVIEW_NOW     ?= 1758880860
-# The UI itself comes from the server, so rendering a fixture means running the
-# server's builder over it first. No web server, no device, still about a second.
-PHP             ?= php
-RENDER_UI       := $(PHP) ../bin/render-ui.php
+# A fixture is a UI tree, exactly what a server sends; UI=path renders any other
+# tree file instead (a server's own output, say).
+UI              ?= fixtures/$(FIXTURE).json
 
 DIST_APP := dist/.adds/homesrv
 DIST_NM  := dist/.adds/nm
@@ -143,7 +143,7 @@ install: dist
 	mkdir -p "$(KOBO_MOUNT)/.adds"
 	cp -r dist/.adds/. "$(KOBO_MOUNT)/.adds/"
 	@test -f "$(KOBO_MOUNT)/.adds/homesrv/config" || { \
-		printf "Server URL (e.g. http://192.168.1.50:8080): "; \
+		printf "Screen URL (e.g. http://192.168.1.50:8082/api/ui.php): "; \
 		read srv; \
 		printf "API token (from HomeSrv Settings page): "; \
 		read tok; \
@@ -192,10 +192,7 @@ ifeq ($(SCREEN),menu)
 	done
 else
 	@for dev in $(PREVIEW_DEVICES); do \
-		width=$$($(PREVIEW_BIN) --print-device $$dev | cut -d' ' -f1) || exit 1; \
-		$(RENDER_UI) fixtures/$(FIXTURE).json --width $$width \
-			> build/ui-$(FIXTURE)-$$dev.json || exit 1; \
-		$(PREVIEW_BIN) --ui build/ui-$(FIXTURE)-$$dev.json --device $$dev \
+		$(PREVIEW_BIN) --ui $(UI) --device $$dev \
 			--now $(PREVIEW_NOW) $(PREVIEW_ARGS) \
 			--font $(FONTS_DIR)/$(FONT_NAME) \
 			--font-bold $(FONTS_DIR)/$(FONT_BOLD_NAME) \
@@ -203,10 +200,10 @@ else
 	done
 endif
 
-# Same, but pointed at a running server instead of a fixture.
+# Same, but fetched from a running server, the way the device fetches it.
 preview-live: $(PREVIEW_BIN) $(FONTS)
-	@test -n "$(SERVER)" || { echo "usage: make preview-live SERVER=http://host:8082 [TOKEN=...]"; exit 1; }
-	$(PREVIEW_BIN) --url "$(SERVER)" --token "$(TOKEN)" \
+	@test -n "$(URL)" || { echo "usage: make preview-live URL=http://host:8082/api/ui.php [TOKEN=...]"; exit 1; }
+	$(PREVIEW_BIN) --url "$(URL)" --token "$(TOKEN)" \
 		--device $(firstword $(PREVIEW_DEVICES)) \
 		--font $(FONTS_DIR)/$(FONT_NAME) \
 		--font-bold $(FONTS_DIR)/$(FONT_BOLD_NAME) \
@@ -221,11 +218,21 @@ endif
 
 # Golden layout tests: every node's computed rect, compared against a checked-in
 # dump. Catches layout regressions without a device and without eyeballing.
-test: $(PREVIEW_BIN) $(FONTS)
-	@PHP="$(PHP)" scripts/run-tests.sh $(PREVIEW_BIN) check
+# Unit tests for the protocol side: URLs, the envelope, the refresh policy.
+UNIT_BIN  := build/unit-tests
+UNIT_SRCS := tests/unit.c src/http.c src/policy.c src/ui.c src/ui_json.c \
+             $(CJSON_DIR)/cJSON.c
+
+$(UNIT_BIN): $(UNIT_SRCS) $(HDRS)
+	mkdir -p build
+	$(HOST_CC) $(HOST_CPPFLAGS) $(HOST_CFLAGS) -o $@ $(UNIT_SRCS) -lm
+
+test: $(PREVIEW_BIN) $(UNIT_BIN) $(FONTS)
+	@$(UNIT_BIN)
+	@scripts/run-tests.sh $(PREVIEW_BIN) check
 
 golden: $(PREVIEW_BIN) $(FONTS)
-	@PHP="$(PHP)" scripts/run-tests.sh $(PREVIEW_BIN) update
+	@scripts/run-tests.sh $(PREVIEW_BIN) update
 
 # ---- inner targets: run inside the NickelTC container only ----
 

@@ -32,22 +32,60 @@ measure without a framebuffer.
 
 ## The wire
 
-```
-GET /api/ui.php?w=758&h=1024&dpi=213      (X-Api-Token: ...)
+A server is known to the client by one URL: the URL of its screen, as written
+in the config file (see kobo/README.md). Everything else is relative to that.
 
-{ "schema": 1, "screen": "dashboard", "root": { ...node... } }
+```
+GET <screen URL>?w=758&h=1024&dpi=213
+Authorization: Bearer <token>
+
+{ "schema": 1,
+  "screen": "dashboard",
+  "refresh": { "seconds": 1800, "ping": "ping.php",
+               "pingSeconds": 10, "flashSeconds": 7200 },
+  "root":    { ...node... } }
 ```
 
-The client sends its panel geometry because spacing scales with the screen
-width; point sizes are resolved against the device's own DPI, so the server
-never deals in pixels for text. A `schema` newer than the client's
-`UI_SCHEMA_VERSION` is refused rather than half-parsed, and any property the
-client does not recognise is ignored — that is what lets the server describe
-something a slightly older client has never heard of.
+The client appends its panel geometry to the configured URL (after `?` or `&`,
+as the URL needs), because spacing scales with the screen width; point sizes
+are resolved against the device's own DPI, so the server never deals in pixels
+for text. The token goes in a standard bearer header, and is left out
+altogether if the config has none. Only `http://` is supported — there is no
+TLS, so the token crosses the network in the clear.
+
+A `schema` newer than the client's `UI_SCHEMA_VERSION` is refused rather than
+half-parsed, and any property the client does not recognise is ignored — that
+is what lets the server describe something a slightly older client has never
+heard of.
 
 A response is parsed once, on arrival, before it is allowed to replace the
 screen that is currently working. After that it is re-parsed into the frame
 arena on every frame, so there is one code path and nothing to keep in sync.
+
+### Envelope
+
+Only `root` is required. Everything else has a client default, and the client
+puts a floor under each interval so a typo cannot make it hammer a server or
+the panel:
+
+| field | default | floor | meaning |
+|---|---|---|---|
+| `refresh.seconds` | 1800 | 15 | refetch the screen this often |
+| `refresh.ping` | none | — | a cheap URL that answers 200 while the server is up |
+| `refresh.pingSeconds` | 10 | 5 | check `ping` this often; `0` = never |
+| `refresh.flashSeconds` | 7200 | 300 | flash the whole panel to clear ghosting; `0` = never |
+
+Without a ping URL, the status line's online/offline simply follows how the
+last fetch went. The policy belongs to the server that sent it: switching
+servers drops back to the defaults until the new one has said otherwise.
+
+### URLs in a tree
+
+An action's `path` and the envelope's `ping` are resolved against the screen
+URL the way a browser would: an absolute `http://…` URL is used as is, `/x` is
+relative to the screen URL's origin, and anything else is relative to its
+directory — so a screen at `http://host/api/ui.php` can say `ping.php` and mean
+`http://host/api/ping.php`, wherever it happens to be hosted.
 
 ## What the client still owns
 
@@ -56,7 +94,7 @@ that has to keep working when the server does not, and gives the body all the
 leftover height (`screen_frame()` in `screens.c`):
 
 ```
-<server tree>            — h: flex:1, whatever /api/ui.php sent
+<server tree>            — h: flex:1, whatever the screen URL sent
 status row    KEY_STATUS — last refresh, online/offline, and the two corners
 ```
 
@@ -72,8 +110,12 @@ tree and refetches. While it is up it replaces the body, and nothing in the
 background repaints over it.
 
 Also client-side: the centred message used while connecting or when a response
-is refused (`screen_message()`), the refresh policy, and the tap toast — whose
-text comes from the server, in the action.
+is refused (`screen_message()`), the defaults and limits of the refresh policy,
+and the tap toast — whose text comes from the server, in the action.
+
+None of the chrome's styling is the server's to set. The status row is inset by
+width / 30 on each side, so a server that wants its body to line up with it
+uses the same margin.
 
 ## Client-side values
 
@@ -184,7 +226,7 @@ on top of it.
 
 | kind | JSON | effect |
 |---|---|---|
-| `UI_ACT_POST` (1) | `{"kind":1,"path":...,"body":...}` | form-encoded POST, then refresh |
+| `UI_ACT_POST` (1) | `{"kind":1,"path":...,"body":...}` | form-encoded POST to `path` (see **URLs in a tree**), then refresh |
 | `UI_ACT_REFRESH` (2) | `{"kind":2}` | re-fetch and redraw |
 | `UI_ACT_OPEN` (4) | `{"kind":4,"target":"menu"}` | switch to a client-drawn screen: `menu` or `dashboard` |
 | `UI_ACT_QUIT` (3) | — | exit the app |
@@ -241,6 +283,17 @@ is logged once per frame.
 
 ## Seeing a change without a device
 
-`bin/render-ui.php` runs the same builder on the command line, so a fixture can
-be turned into a tree with no web server and no Kobo. That is what
-`make -C kobo preview` and `make -C kobo test` do — see kobo/README.md.
+The client renders any tree file, with no server and no Kobo:
+
+```bash
+make -C kobo preview UI=tree.json        # PNGs in kobo/build/
+make -C kobo preview-live URL=http://host/api/ui.php TOKEN=...
+```
+
+Its own fixtures (`kobo/fixtures/*.json`) are trees too — exactly what a server
+sends — and `make -C kobo test` checks the client's layout of them. What a
+particular server *sends* is that server's to test.
+
+HomeSrv's side of that: `bin/kobo-preview` builds its dashboard from a data
+fixture with the same builder `/api/ui.php` uses and draws it with this client,
+and `bin/test-ui` checks the trees it builds against goldens.

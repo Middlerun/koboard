@@ -8,21 +8,21 @@
       { "kind": "text", "rect": [25, 162, 30, 38], "text": "▶", "size": 13, "lines": 1, "maxLines": 1, "w": "30" },
       { "kind": "box", "rect": [67, 148, 666, 67], "gap": 2, "w": "flex:1", "children": [
         { "kind": "text", "rect": [67, 148, 666, 38], "text": "Home", "size": 13, "lines": 1, "style": 1, "maxLines": 1 },
-        { "kind": "text", "rect": [67, 188, 666, 27], "text": "http://192.168.1.50:8082", "size": 9, "lines": 1, "maxLines": 1, "fg": 128 }
+        { "kind": "text", "rect": [67, 188, 666, 27], "text": "http://192.168.1.50:8082/api/ui.php", "size": 9, "lines": 1, "maxLines": 1, "fg": 128 }
       ] }
     ] },
     { "kind": "box", "rect": [25, 237, 708, 87], "dir": "row", "gap": 12, "cross": 2, "pad": [10, 0, 10, 0], "action": { "kind": 5, "target": "1" }, "children": [
       { "kind": "text", "rect": [25, 261, 30, 38], "text": " ", "size": 13, "lines": 1, "maxLines": 1, "w": "30" },
       { "kind": "box", "rect": [67, 247, 666, 67], "gap": 2, "w": "flex:1", "children": [
         { "kind": "text", "rect": [67, 247, 666, 38], "text": "Test", "size": 13, "lines": 1, "maxLines": 1 },
-        { "kind": "text", "rect": [67, 287, 666, 27], "text": "http://192.168.1.50:8083", "size": 9, "lines": 1, "maxLines": 1, "fg": 128 }
+        { "kind": "text", "rect": [67, 287, 666, 27], "text": "http://192.168.1.50:8083/api/ui.php", "size": 9, "lines": 1, "maxLines": 1, "fg": 128 }
       ] }
     ] },
     { "kind": "box", "rect": [25, 336, 708, 87], "dir": "row", "gap": 12, "cross": 2, "pad": [10, 0, 10, 0], "action": { "kind": 5, "target": "2" }, "children": [
       { "kind": "text", "rect": [25, 360, 30, 38], "text": " ", "size": 13, "lines": 1, "maxLines": 1, "w": "30" },
       { "kind": "box", "rect": [67, 346, 666, 67], "gap": 2, "w": "flex:1", "children": [
-        { "kind": "text", "rect": [67, 346, 666, 38], "text": "homesrv.local:8082", "size": 13, "lines": 1, "maxLines": 1 },
-        { "kind": "text", "rect": [67, 386, 666, 27], "text": "http://homesrv.local:8082", "size": 9, "lines": 1, "maxLines": 1, "fg": 128 }
+        { "kind": "text", "rect": [67, 346, 666, 38], "text": "dashboard.local", "size": 13, "lines": 1, "maxLines": 1 },
+        { "kind": "text", "rect": [67, 386, 666, 27], "text": "http://dashboard.local/screen.json", "size": 9, "lines": 1, "maxLines": 1, "fg": 128 }
       ] }
     ] }
   ] },

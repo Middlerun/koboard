@@ -1,7 +1,167 @@
 {
-  "date": "Friday, September 26, 2025",
-  "date_iso": "2025-09-26",
-  "tasks": [],
-  "calendar_events": [],
-  "weather": null
+    "schema": 1,
+    "screen": "dashboard",
+    "refresh": {
+        "seconds": 1800,
+        "ping": "ping.php",
+        "pingSeconds": 10,
+        "flashSeconds": 7200
+    },
+    "root": {
+        "kind": "box",
+        "h": "flex:1",
+        "children": [
+            {
+                "kind": "box",
+                "key": "clock",
+                "dir": "row",
+                "gap": 25,
+                "cross": 3,
+                "pad": [
+                    40,
+                    25,
+                    0,
+                    25
+                ],
+                "children": [
+                    {
+                        "kind": "text",
+                        "text": "{clock:%a, %b %e}",
+                        "size": 14,
+                        "w": "flex:1",
+                        "maxLines": 1
+                    },
+                    {
+                        "kind": "text",
+                        "text": "{clock:%I:%M}",
+                        "size": 14,
+                        "align": 2,
+                        "maxLines": 1
+                    }
+                ]
+            },
+            {
+                "kind": "box",
+                "pad": [
+                    0,
+                    25,
+                    0,
+                    25
+                ],
+                "children": [
+                    {
+                        "kind": "box",
+                        "h": "20"
+                    }
+                ]
+            },
+            {
+                "kind": "box",
+                "h": "4",
+                "bg": 64
+            },
+            {
+                "kind": "box",
+                "h": "30"
+            },
+            {
+                "kind": "box",
+                "dir": "row",
+                "h": "flex:1",
+                "children": [
+                    {
+                        "kind": "box",
+                        "dir": "col",
+                        "w": "flex:1",
+                        "gap": 25,
+                        "pad": [
+                            0,
+                            25,
+                            0,
+                            25
+                        ],
+                        "clip": true,
+                        "overflowText": "… +{n} more",
+                        "children": [
+                            {
+                                "kind": "text",
+                                "text": "TASKS",
+                                "size": 14,
+                                "maxLines": 1
+                            },
+                            {
+                                "kind": "text",
+                                "text": "Nothing to do",
+                                "size": 9,
+                                "maxLines": 1
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "box",
+                        "w": "4",
+                        "bg": 64
+                    },
+                    {
+                        "kind": "box",
+                        "dir": "col",
+                        "w": "flex:1",
+                        "gap": 4,
+                        "pad": [
+                            0,
+                            25,
+                            0,
+                            25
+                        ],
+                        "clip": true,
+                        "overflowText": "… +{n} more",
+                        "children": [
+                            {
+                                "kind": "text",
+                                "text": "TODAY",
+                                "size": 14,
+                                "maxLines": 1
+                            },
+                            {
+                                "kind": "text",
+                                "text": "Nothing scheduled",
+                                "size": 9,
+                                "maxLines": 1,
+                                "pad": [
+                                    21,
+                                    0,
+                                    0,
+                                    0
+                                ]
+                            },
+                            {
+                                "kind": "text",
+                                "text": "TOMORROW",
+                                "size": 14,
+                                "maxLines": 1,
+                                "pad": [
+                                    21,
+                                    0,
+                                    0,
+                                    0
+                                ]
+                            },
+                            {
+                                "kind": "text",
+                                "text": "Nothing scheduled",
+                                "size": 9,
+                                "maxLines": 1,
+                                "pad": [
+                                    21,
+                                    0,
+                                    0,
+                                    0
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
 }

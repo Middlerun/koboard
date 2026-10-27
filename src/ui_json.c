@@ -283,10 +283,37 @@ static UiNode *parse_node(struct ParseCtx *ctx, const cJSON *obj, int depth)
 	return node;
 }
 
+// A whole number of seconds, or UI_ENV_UNSET if absent or not a number.
+static int get_seconds(const cJSON *obj, const char *name)
+{
+	const cJSON *it = cJSON_GetObjectItem(obj, name);
+	if (!cJSON_IsNumber(it) || it->valuedouble < 0) return UI_ENV_UNSET;
+	if (it->valuedouble > 86400 * 7) return 86400 * 7;
+	return (int) it->valuedouble;
+}
+
+static void parse_envelope(const cJSON *doc, UiEnvelope *env)
+{
+	const cJSON *refresh = cJSON_GetObjectItem(doc, "refresh");
+	if (cJSON_IsObject(refresh)) {
+		env->refresh_seconds = get_seconds(refresh, "seconds");
+		env->ping_seconds    = get_seconds(refresh, "pingSeconds");
+		env->flash_seconds   = get_seconds(refresh, "flashSeconds");
+		const char *ping = get_str(refresh, "ping");
+		if (ping) snprintf(env->ping, sizeof(env->ping), "%s", ping);
+	}
+}
+
 UiNode *ui_from_json(UiArena *a, const char *json, const UiVars *vars,
-		     char *err, size_t errsz)
+		     UiEnvelope *env, char *err, size_t errsz)
 {
 	if (err && errsz) err[0] = '\0';
+	if (env)
+		*env = (UiEnvelope){
+			.refresh_seconds = UI_ENV_UNSET,
+			.ping_seconds    = UI_ENV_UNSET,
+			.flash_seconds   = UI_ENV_UNSET,
+		};
 
 	cJSON *doc = cJSON_Parse(json);
 	if (!doc) {
@@ -316,6 +343,7 @@ UiNode *ui_from_json(UiArena *a, const char *json, const UiVars *vars,
 			cJSON_Delete(doc);
 			return NULL;
 		}
+		if (env) parse_envelope(doc, env);
 	}
 
 	UiNode *node = parse_node(&ctx, root, 0);

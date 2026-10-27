@@ -35,10 +35,30 @@ typedef struct {
 	time_t now;
 } UiVars;
 
+// Everything the envelope says besides the tree itself:
+//
+//   { "schema": 1,
+//     "refresh": { "seconds": 1800, "ping": "/api/ping.php",
+//                  "pingSeconds": 10, "flashSeconds": 7200 },
+//     "root":    { ... } }
+//
+// Every field is optional. UI_ENV_UNSET means the server did not say, and the
+// caller falls back to its own default; what the values are allowed to be is
+// the caller's policy too, so nothing here clamps them.
+#define UI_ENV_UNSET (-1)
+
+typedef struct {
+	int  refresh_seconds;   // refetch the screen this often
+	int  ping_seconds;      // check `ping` this often; 0 = never
+	int  flash_seconds;     // full-screen flash to clear ghosting; 0 = never
+	char ping[256];         // as sent; "" = none. Resolve against the screen URL.
+} UiEnvelope;
+
 // Parse `json` — either an envelope ({"schema":1,"root":{...}}) or a bare node
 // — into `a`. `vars` may be NULL, which leaves every placeholder untouched.
-// Returns the root, or NULL with a reason in `err`.
+// `env` may be NULL; if not, it is filled in (all UI_ENV_UNSET for a bare
+// node). Returns the root, or NULL with a reason in `err`.
 UiNode *ui_from_json(UiArena *a, const char *json, const UiVars *vars,
-		     char *err, size_t errsz);
+		     UiEnvelope *env, char *err, size_t errsz);
 
 #endif

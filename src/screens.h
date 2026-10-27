@@ -24,9 +24,9 @@
 #include "config.h"
 #include "ui.h"
 
-// Spacing and point sizes for the chrome. `margin` matches the server's theme
-// (see Theme::__construct in src/Ui/Theme.php) so the clock lines up with the
-// body below it; change one, change the other.
+// Spacing and point sizes for the chrome, fixed by the client and scaled to the
+// panel. A server that wants its body to line up with the status row inset its
+// own content by the same width / 30.
 struct Theme {
 	int margin;
 	int font_status, font_msg;

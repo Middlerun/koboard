@@ -5,8 +5,10 @@
 
 #include "config.h"
 #include "paint_fbink.h"
+#include "policy.h"
 #include "screens.h"
 #include "ui.h"
+#include "ui_json.h"
 #include "ui_text.h"
 
 // Per-frame UI tree memory. The dashboard uses ~30 KB on a busy day; the rest
@@ -48,6 +50,11 @@ struct AppState {
 	// one code path that turns it into nodes.
 	char  *ui_json;
 	int    ui_loaded;
+	struct Policy policy;     // what the current server asked for; see policy.h
+
+	// Why the last fetch failed, for the message screen: "HTTP 401" tells
+	// someone with a mistyped token far more than "cannot connect".
+	char   last_error[96];
 
 	// The menu takes the whole screen while it is up, so the frame is built
 	// from it instead of from the server's tree.

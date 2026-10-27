@@ -5,7 +5,7 @@
 // right there. Only the painter differs.
 //
 //   php bin/render-ui.php fixtures/typical.json | homesrv-preview --ui -
-//   homesrv-preview --url http://localhost:8082 --device glohd
+//   homesrv-preview --url http://localhost:8082/api/ui.php --device glohd
 //   homesrv-preview --ui tree.json --dump-rects -   # layout as JSON, no pixels
 //   homesrv-preview --screen menu --config fixtures/servers.config
 
@@ -94,8 +94,8 @@ static void usage(void)
 		"  --screen NAME     dashboard (default) | menu\n"
 		"  --config FILE     server list for --screen menu\n"
 		"  --server N        which server the menu shows as current (1-based)\n"
-		"  --url URL         fetch /api/ui.php from this server instead\n"
-		"  --token TOKEN     API token for --url\n"
+		"  --url URL         fetch the screen from this URL instead (w/h/dpi appended)\n"
+		"  --token TOKEN     bearer token for --url\n"
 		"  --device NAME     glo | glohd | clarahd | libra2 | auranone\n"
 		"  --width N --height N --dpi N   override the device preset\n"
 		"  --now EPOCH       fix the clock, for reproducible output\n"
@@ -166,11 +166,17 @@ int main(int argc, char **argv)
 	if (want_menu) {
 		body = NULL;   // the menu is drawn by the client, from the config
 	} else if (url) {
-		char path[128];
-		snprintf(path, sizeof(path), "/api/ui.php?w=%d&h=%d&dpi=%d", w, h, dpi);
+		// Exactly what the device asks for: the configured URL, with the
+		// panel's geometry appended.
+		char query[64], full[512];
+		snprintf(query, sizeof(query), "w=%d&h=%d&dpi=%d", w, h, dpi);
+		if (url_with_query(url, query, full, sizeof(full)) < 0) {
+			fprintf(stderr, "preview: URL too long\n");
+			return 1;
+		}
 		struct HttpResponse resp;
-		if (http_get(url, path, token, &resp) < 0) {
-			fprintf(stderr, "preview: fetch from %s failed\n", url);
+		if (http_get(full, token, &resp) < 0) {
+			fprintf(stderr, "preview: fetch from %s failed\n", full);
 			return 1;
 		}
 		if (resp.status != 200) {
@@ -231,7 +237,8 @@ int main(int argc, char **argv)
 	} else {
 		char err[160];
 		UiVars vars = { .now = now };
-		UiNode *body_tree = ui_from_json(&arena, body, &vars, err, sizeof(err));
+		UiNode *body_tree = ui_from_json(&arena, body, &vars, NULL,
+						 err, sizeof(err));
 		free(body);
 		if (!body_tree) {
 			fprintf(stderr, "preview: %s\n", err);

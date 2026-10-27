@@ -1,6 +1,7 @@
 #include "app.h"
 #include "config.h"
 #include "http.h"
+#include "touch.h"
 #include "ui_json.h"
 #include "ui_layout.h"
 #include "ui_paint.h"
@@ -135,7 +136,7 @@ static UiNode *build_frame(struct AppState *s, const char *message)
 	char err[160] = { 0 };
 	if (!message && s->ui_json) {
 		UiVars vars = { .now = ctx.now };
-		body = ui_from_json(&s->arena, s->ui_json, &vars, err, sizeof(err));
+		body = ui_from_json(&s->arena, s->ui_json, &vars, NULL, err, sizeof(err));
 		if (!body) fprintf(stderr, "homesrv: bad UI from server: %s\n", err);
 	}
 
@@ -263,25 +264,51 @@ int init_touch(const char *dev_path)
 
 // ---- network -------------------------------------------------------------
 
-// Ask the server for a screen. The panel's geometry goes with the request:
-// the server scales its spacing to the width, and sends back a tree this
-// client only has to lay out and paint.
+// Adopt what the current server's envelope asks for (see policy.h). `env` may
+// be NULL: the defaults, before a server has said anything.
+static void apply_policy(struct AppState *s, const UiEnvelope *env)
+{
+	struct Policy p;
+	policy_from_envelope(&p, env, cur(s)->url);
+
+	if (p.refresh_seconds != s->policy.refresh_seconds
+	    || p.ping_seconds != s->policy.ping_seconds
+	    || p.flash_seconds != s->policy.flash_seconds
+	    || strcmp(p.ping_url, s->policy.ping_url) != 0)
+		fprintf(stderr, "homesrv: policy: refresh %ds, ping %s every %ds, "
+			"flash %ds\n", p.refresh_seconds,
+			p.ping_url[0] ? p.ping_url : "(none)", p.ping_seconds,
+			p.flash_seconds);
+	s->policy = p;
+}
+
+// Ask the server for its screen. The panel's geometry goes with the request,
+// as query parameters on whatever URL the config gave: the server scales its
+// layout to the width, and sends back a tree this client only has to lay out
+// and paint.
 static int fetch_ui(struct AppState *s)
 {
-	char path[128];
-	snprintf(path, sizeof(path), "/api/ui.php?w=%d&h=%d&dpi=%d",
+	char query[64], url[512];
+	snprintf(query, sizeof(query), "w=%d&h=%d&dpi=%d",
 		 s->screen_w, s->screen_h, s->dpi);
+	if (url_with_query(cur(s)->url, query, url, sizeof(url)) < 0) {
+		snprintf(s->last_error, sizeof(s->last_error), "URL too long");
+		return -1;
+	}
 
 	struct HttpResponse resp;
-	if (http_get(cur(s)->url, path, cur(s)->token, &resp) < 0) {
-		fprintf(stderr, "homesrv: fetch failed (network error), "
-			"attempting wifi reconnect\n");
+	if (http_get(url, cur(s)->token, &resp) < 0) {
+		fprintf(stderr, "homesrv: fetch %s failed (network error), "
+			"attempting wifi reconnect\n", url);
+		snprintf(s->last_error, sizeof(s->last_error), "no connection");
 		int rc = system("wpa_cli -i wlan0 reassociate 2>/dev/null &");
 		fprintf(stderr, "homesrv: wifi reconnect rc=%d\n", rc);
 		return -1;
 	}
 	if (resp.status != 200) {
-		fprintf(stderr, "homesrv: fetch failed (HTTP %d)\n", resp.status);
+		fprintf(stderr, "homesrv: fetch %s failed (HTTP %d)\n", url,
+			resp.status);
+		snprintf(s->last_error, sizeof(s->last_error), "HTTP %d", resp.status);
 		http_free_response(&resp); return -1;
 	}
 
@@ -293,10 +320,13 @@ static int fetch_ui(struct AppState *s)
 	UiArena probe;
 	ui_arena_init(&probe, probe_buf, UI_ARENA_BYTES);
 	char err[160];
-	UiNode *probe_root = ui_from_json(&probe, resp.body, NULL, err, sizeof(err));
+	UiEnvelope env;
+	UiNode *probe_root = ui_from_json(&probe, resp.body, NULL, &env,
+					  err, sizeof(err));
 	free(probe_buf);
 	if (!probe_root) {
-		fprintf(stderr, "homesrv: fetch failed (%s)\n", err);
+		fprintf(stderr, "homesrv: fetch %s failed (%s)\n", url, err);
+		snprintf(s->last_error, sizeof(s->last_error), "%s", err);
 		http_free_response(&resp); return -1;
 	}
 
@@ -307,23 +337,33 @@ static int fetch_ui(struct AppState *s)
 	free(s->ui_json);
 	s->ui_json = copy;
 	s->ui_loaded = 1;
+	s->last_error[0] = '\0';
+	apply_policy(s, &env);
 	return 0;
 }
 
+// An action's path is resolved against the screen URL, so a server can say
+// "/api/tasks/complete.php" without the tree knowing where it is hosted.
 static int api_post(struct AppState *s, const char *path, const char *body)
 {
+	char url[512];
+	if (url_resolve(cur(s)->url, path, url, sizeof(url)) < 0) {
+		fprintf(stderr, "homesrv: POST %s: URL too long\n", path);
+		return -1;
+	}
+
 	struct HttpResponse resp;
-	if (http_post(cur(s)->url, path, cur(s)->token, body, &resp) < 0) {
+	if (http_post(url, cur(s)->token, body, &resp) < 0) {
 		fprintf(stderr, "homesrv: POST %s (%s) failed (network error)\n",
-			path, body);
+			url, body);
 		return -1;
 	}
 	if (resp.status != 200) {
 		fprintf(stderr, "homesrv: POST %s (%s) failed (HTTP %d)\n",
-			path, body, resp.status);
+			url, body, resp.status);
 		http_free_response(&resp); return -1;
 	}
-	fprintf(stderr, "homesrv: POST %s (%s) ok\n", path, body);
+	fprintf(stderr, "homesrv: POST %s (%s) ok\n", url, body);
 	http_free_response(&resp);
 	return 0;
 }
@@ -342,6 +382,8 @@ static void select_server(struct AppState *s, int index)
 	free(s->ui_json);
 	s->ui_json = NULL;
 	s->ui_loaded = 0;
+	s->last_error[0] = '\0';
+	apply_policy(s, NULL);
 	s->offline = 0;
 	s->menu_open = 0;
 	s->refresh_pending = 1;
@@ -438,35 +480,30 @@ int main(int argc, char *argv[])
 		evdev = libevdev_new();
 		libevdev_set_fd(evdev, s.touch_fd);
 		has_touch = 1;
+
+		// Nickel is only paused, and still holds the touchscreen open:
+		// see touch.h for why it has to be ours alone while we run.
+		touch_grab(evdev);
 	}
 
+	apply_policy(&s, NULL);
 	render_message(&s, "Starting HomeSrv...");
 
-	// Ensure Wi-Fi is connected before the first fetch.
-	fprintf(stderr, "homesrv: checking wifi...\n");
+	// The first fetch doubles as the Wi-Fi check: there is no separate ping
+	// to try before the server has said where its ping is. fetch_ui() asks
+	// for a reassociate itself on a network error, so this only has to wait.
 	for (int attempt = 0; attempt < 5; attempt++) {
-		struct HttpResponse pr;
-		if (http_get(cur(&s)->url, "/api/ping.php", cur(&s)->token, &pr) == 0
-		    && pr.status == 200) {
-			http_free_response(&pr);
-			fprintf(stderr, "homesrv: wifi ok (attempt %d)\n", attempt + 1);
+		if (fetch_ui(&s) == 0) {
+			fprintf(stderr, "homesrv: first fetch ok (attempt %d)\n",
+				attempt + 1);
 			break;
 		}
-		fprintf(stderr, "homesrv: wifi not ready (attempt %d), "
-			"reconnecting...\n", attempt + 1);
-		char buf[128];
-		snprintf(buf, sizeof(buf), "Connecting to Wi-Fi... (attempt %d)",
-			 attempt + 1);
-		render_message(&s, buf);
-		system("wpa_cli -i wlan0 reassociate 2>/dev/null &");
-		sleep(5);
-	}
-
-	if (fetch_ui(&s) != 0) {
-		char buf[128];
-		snprintf(buf, sizeof(buf), "Connecting to %s...", cur(&s)->name);
+		char buf[160];
+		snprintf(buf, sizeof(buf), "Connecting to %s... (%s)",
+			 cur(&s)->name, s.last_error);
 		render_message(&s, buf);
 		fbink_wait_for_complete(s.fbfd, LAST_MARKER);
+		sleep(5);
 	}
 
 	if (s.ui_loaded) {
@@ -491,9 +528,10 @@ int main(int argc, char *argv[])
 		if (!s.ui_loaded && !s.refresh_pending && !s.menu_open
 		    && now - s.last_refresh >= 15) {
 			conn_retries++;
-			char buf[128];
-			snprintf(buf, sizeof(buf), "Connecting to %s... (retry %d)",
-				 cur(&s)->name, conn_retries);
+			char buf[160];
+			snprintf(buf, sizeof(buf), "Connecting to %s... (retry %d: %s)",
+				 cur(&s)->name, conn_retries,
+				 s.last_error[0] ? s.last_error : "waiting");
 			render_message(&s, buf);
 			fbink_wait_for_complete(s.fbfd, LAST_MARKER);
 			if (fetch_ui(&s) == 0) {
@@ -505,7 +543,9 @@ int main(int argc, char *argv[])
 		}
 
 		if (!s.menu_open
-		    && (s.refresh_pending || (s.ui_loaded && now - s.last_refresh >= 1800))) {
+		    && (s.refresh_pending
+			|| (s.ui_loaded
+			    && now - s.last_refresh >= s.policy.refresh_seconds))) {
 			if (s.refresh_pending)
 				fprintf(stderr, "homesrv: refresh (user action)\n");
 			else
@@ -528,17 +568,18 @@ int main(int argc, char *argv[])
 				// Nothing to fall back on — usually a server just
 				// picked from the menu that is not answering. Say
 				// which one, and leave the corners reachable.
-				char msg[160];
-				snprintf(msg, sizeof(msg), "Cannot reach %s",
-					 cur(&s)->name);
+				char msg[192];
+				snprintf(msg, sizeof(msg), "Cannot reach %s (%s)",
+					 cur(&s)->name, s.last_error);
 				render_message(&s, msg);
 			}
 			fbink_wait_for_complete(s.fbfd, LAST_MARKER);
 			continue;
 		}
 
-		// Full-screen flash every 2 hours to clear ghosting.
-		if (s.ui_loaded && !s.menu_open && now - s.last_screen_refresh >= 7200) {
+		// Full-screen flash to clear ghosting, as often as the server asks.
+		if (s.ui_loaded && !s.menu_open && s.policy.flash_seconds > 0
+		    && now - s.last_screen_refresh >= s.policy.flash_seconds) {
 			fprintf(stderr, "homesrv: screen refresh (clear ghosting)\n");
 			FBInkConfig cc = g_cfg_flash;
 			cc.wfm_mode = WFM_GC16;
@@ -557,17 +598,19 @@ int main(int argc, char *argv[])
 			last_minute = tm->tm_min;
 		}
 
-		// Connectivity: repaint just the status line when it changes.
-		if (s.ui_loaded && !s.menu_open && now - last_conn_check >= 10) {
+		// Connectivity: repaint just the status line when it changes. Only
+		// if the server named a ping URL; without one, online/offline just
+		// follows how the last fetch went.
+		if (s.ui_loaded && !s.menu_open && s.policy.ping_seconds > 0
+		    && now - last_conn_check >= s.policy.ping_seconds) {
 			struct HttpResponse pr;
 			int was_offline = s.offline;
-			if (http_get(cur(&s)->url, "/api/ping.php", cur(&s)->token, &pr) == 0
-			    && pr.status == 200) {
-				s.offline = 0;
-				http_free_response(&pr);
-			} else {
-				s.offline = 1;
-			}
+			int ok = http_get(s.policy.ping_url, cur(&s)->token, &pr) == 0
+				 && pr.status == 200;
+			// A body comes back with any status, not just 200, and
+			// http_get() leaves it NULL on failure, so free either way.
+			http_free_response(&pr);
+			s.offline = !ok;
 			last_conn_check = now;
 			if (was_offline != s.offline)
 				render_subtree(&s, KEY_STATUS);
@@ -624,6 +667,13 @@ int main(int argc, char *argv[])
 	fbink_cls(s.fbfd, &g_cfg_draw, NULL, false);
 	fbink_refresh(s.fbfd, 0, 0, 0, 0, &g_cfg_flash);
 	fbink_wait_for_complete(s.fbfd, LAST_MARKER);
+
+	// After the clear, so the screen answers the Quit tap at once; the lift
+	// has usually happened by now and is just waiting to be read.
+	if (evdev) {
+		touch_wait_for_lift(evdev, s.touch_fd, touch_down, 3000);
+		touch_release(evdev);
+	}
 
 	free(s.ui_json);
 	if (evdev) libevdev_free(evdev);

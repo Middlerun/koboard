@@ -1,204 +1,204 @@
 { "kind": "box", "rect": [0, 0, 1072, 1448], "bg": 255, "children": [
   { "kind": "box", "rect": [0, 0, 1072, 1392], "h": "flex:1", "children": [
-    { "kind": "box", "key": "clock", "rect": [0, 0, 1072, 98], "dir": "row", "gap": 35, "cross": 3, "pad": [40, 35, 0, 35], "children": [
-      { "kind": "text", "rect": [35, 40, 824, 58], "text": "Fri, Sep 26", "size": 14, "lines": 1, "maxLines": 1, "w": "flex:1" },
-      { "kind": "text", "rect": [894, 40, 143, 58], "text": "10:01", "size": 14, "lines": 1, "align": 2, "maxLines": 1 }
+    { "kind": "box", "key": "clock", "rect": [0, 0, 1072, 98], "dir": "row", "gap": 25, "cross": 3, "pad": [40, 25, 0, 25], "children": [
+      { "kind": "text", "rect": [25, 40, 854, 58], "text": "Fri, Sep 26", "size": 14, "lines": 1, "maxLines": 1, "w": "flex:1" },
+      { "kind": "text", "rect": [904, 40, 143, 58], "text": "10:01", "size": 14, "lines": 1, "align": 2, "maxLines": 1 }
     ] },
-    { "kind": "box", "rect": [0, 98, 1072, 424], "pad": [0, 35, 0, 35], "children": [
-      { "kind": "box", "rect": [35, 98, 1002, 20], "h": "20" },
-      { "kind": "box", "rect": [35, 118, 1002, 188], "gap": 17, "children": [
-        { "kind": "text", "rect": [35, 118, 1002, 125], "text": "⛈  31°", "size": 30, "lines": 1, "align": 1, "maxLines": 1 },
-        { "kind": "text", "rect": [35, 260, 1002, 46], "text": "Thunderstorm with heavy rain expected · 35°/19…", "size": 11, "lines": 1, "align": 1, "maxLines": 1, "truncated": true }
+    { "kind": "box", "rect": [0, 98, 1072, 419], "pad": [0, 25, 0, 25], "children": [
+      { "kind": "box", "rect": [25, 98, 1022, 20], "h": "20" },
+      { "kind": "box", "rect": [25, 118, 1022, 183], "gap": 12, "children": [
+        { "kind": "text", "rect": [25, 118, 1022, 125], "text": "⛈  31°", "size": 30, "lines": 1, "align": 1, "maxLines": 1 },
+        { "kind": "text", "rect": [25, 255, 1022, 46], "text": "Thunderstorm with heavy rain expected · 35°/19°…", "size": 11, "lines": 1, "align": 1, "maxLines": 1, "truncated": true }
       ] },
-      { "kind": "box", "rect": [35, 306, 1002, 40], "h": "40" },
-      { "kind": "box", "rect": [35, 346, 1002, 146], "dir": "row", "gap": 35, "children": [
-        { "kind": "box", "rect": [35, 346, 224, 146], "gap": 2, "w": "flex:1", "children": [
-          { "kind": "text", "rect": [35, 346, 224, 42], "text": "Sat", "size": 10, "lines": 1, "align": 1, "maxLines": 1 },
-          { "kind": "text", "rect": [35, 390, 224, 58], "text": "🌧", "size": 14, "lines": 1, "align": 1, "maxLines": 1 },
-          { "kind": "text", "rect": [35, 450, 224, 42], "text": "30°/15°", "size": 10, "lines": 1, "align": 1, "maxLines": 1 }
+      { "kind": "box", "rect": [25, 301, 1022, 40], "h": "40" },
+      { "kind": "box", "rect": [25, 341, 1022, 146], "dir": "row", "gap": 25, "children": [
+        { "kind": "box", "rect": [25, 341, 236, 146], "gap": 2, "w": "flex:1", "children": [
+          { "kind": "text", "rect": [25, 341, 236, 42], "text": "Sat", "size": 10, "lines": 1, "align": 1, "maxLines": 1 },
+          { "kind": "text", "rect": [25, 385, 236, 58], "text": "🌧", "size": 14, "lines": 1, "align": 1, "maxLines": 1 },
+          { "kind": "text", "rect": [25, 445, 236, 42], "text": "30°/15°", "size": 10, "lines": 1, "align": 1, "maxLines": 1 }
         ] },
-        { "kind": "box", "rect": [294, 346, 224, 146], "gap": 2, "w": "flex:1", "children": [
-          { "kind": "text", "rect": [294, 346, 224, 42], "text": "Sun", "size": 10, "lines": 1, "align": 1, "maxLines": 1 },
-          { "kind": "text", "rect": [294, 390, 224, 58], "text": "🌧", "size": 14, "lines": 1, "align": 1, "maxLines": 1 },
-          { "kind": "text", "rect": [294, 450, 224, 42], "text": "29°/16°", "size": 10, "lines": 1, "align": 1, "maxLines": 1 }
+        { "kind": "box", "rect": [286, 341, 236, 146], "gap": 2, "w": "flex:1", "children": [
+          { "kind": "text", "rect": [286, 341, 236, 42], "text": "Sun", "size": 10, "lines": 1, "align": 1, "maxLines": 1 },
+          { "kind": "text", "rect": [286, 385, 236, 58], "text": "🌧", "size": 14, "lines": 1, "align": 1, "maxLines": 1 },
+          { "kind": "text", "rect": [286, 445, 236, 42], "text": "29°/16°", "size": 10, "lines": 1, "align": 1, "maxLines": 1 }
         ] },
-        { "kind": "box", "rect": [553, 346, 224, 146], "gap": 2, "w": "flex:1", "children": [
-          { "kind": "text", "rect": [553, 346, 224, 42], "text": "Mon", "size": 10, "lines": 1, "align": 1, "maxLines": 1 },
-          { "kind": "text", "rect": [553, 390, 224, 58], "text": "🌧", "size": 14, "lines": 1, "align": 1, "maxLines": 1 },
-          { "kind": "text", "rect": [553, 450, 224, 42], "text": "28°/17°", "size": 10, "lines": 1, "align": 1, "maxLines": 1 }
+        { "kind": "box", "rect": [547, 341, 236, 146], "gap": 2, "w": "flex:1", "children": [
+          { "kind": "text", "rect": [547, 341, 236, 42], "text": "Mon", "size": 10, "lines": 1, "align": 1, "maxLines": 1 },
+          { "kind": "text", "rect": [547, 385, 236, 58], "text": "🌧", "size": 14, "lines": 1, "align": 1, "maxLines": 1 },
+          { "kind": "text", "rect": [547, 445, 236, 42], "text": "28°/17°", "size": 10, "lines": 1, "align": 1, "maxLines": 1 }
         ] },
-        { "kind": "box", "rect": [812, 346, 225, 146], "gap": 2, "w": "flex:1", "children": [
-          { "kind": "text", "rect": [812, 346, 225, 42], "text": "Tue", "size": 10, "lines": 1, "align": 1, "maxLines": 1 },
-          { "kind": "text", "rect": [812, 390, 225, 58], "text": "🌧", "size": 14, "lines": 1, "align": 1, "maxLines": 1 },
-          { "kind": "text", "rect": [812, 450, 225, 42], "text": "27°/18°", "size": 10, "lines": 1, "align": 1, "maxLines": 1 }
+        { "kind": "box", "rect": [808, 341, 239, 146], "gap": 2, "w": "flex:1", "children": [
+          { "kind": "text", "rect": [808, 341, 239, 42], "text": "Tue", "size": 10, "lines": 1, "align": 1, "maxLines": 1 },
+          { "kind": "text", "rect": [808, 385, 239, 58], "text": "🌧", "size": 14, "lines": 1, "align": 1, "maxLines": 1 },
+          { "kind": "text", "rect": [808, 445, 239, 42], "text": "27°/18°", "size": 10, "lines": 1, "align": 1, "maxLines": 1 }
         ] }
       ] },
-      { "kind": "box", "rect": [35, 492, 1002, 30], "h": "30" }
+      { "kind": "box", "rect": [25, 487, 1022, 30], "h": "30" }
     ] },
-    { "kind": "box", "rect": [0, 522, 1072, 4], "h": "4", "bg": 64 },
-    { "kind": "box", "rect": [0, 526, 1072, 30], "h": "30" },
-    { "kind": "box", "rect": [0, 556, 1072, 836], "dir": "row", "h": "flex:1", "children": [
-      { "kind": "box", "rect": [0, 556, 534, 836], "gap": 35, "clip": true, "w": "flex:1", "pad": [0, 35, 0, 35], "children": [
-        { "kind": "text", "rect": [35, 556, 464, 58], "text": "TASKS", "size": 14, "lines": 1, "maxLines": 1 },
-        { "kind": "box", "key": "task-100", "rect": [35, 649, 464, 158], "gap": 4, "children": [
-          { "kind": "text", "rect": [35, 649, 464, 54], "text": "Clean the gutters", "size": 13, "lines": 1, "maxLines": 2 },
-          { "kind": "text", "rect": [35, 707, 464, 38], "text": "Was due on 20/09 · 09:00…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
-          { "kind": "box", "rect": [35, 749, 278, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=100", "toast": "COMPLETED!" }, "children": [
-            { "kind": "text", "rect": [126, 759, 95, 38], "text": "Done", "size": 9, "lines": 1, "style": 1, "align": 1, "maxLines": 1, "fg": 0 }
+    { "kind": "box", "rect": [0, 517, 1072, 4], "h": "4", "bg": 64 },
+    { "kind": "box", "rect": [0, 521, 1072, 30], "h": "30" },
+    { "kind": "box", "rect": [0, 551, 1072, 841], "dir": "row", "h": "flex:1", "children": [
+      { "kind": "box", "rect": [0, 551, 534, 841], "gap": 25, "clip": true, "w": "flex:1", "pad": [0, 25, 0, 25], "children": [
+        { "kind": "text", "rect": [25, 551, 484, 58], "text": "TASKS", "size": 14, "lines": 1, "maxLines": 1 },
+        { "kind": "box", "key": "task-100", "rect": [25, 634, 484, 158], "gap": 4, "children": [
+          { "kind": "text", "rect": [25, 634, 484, 54], "text": "Clean the gutters", "size": 13, "lines": 1, "maxLines": 2 },
+          { "kind": "text", "rect": [25, 692, 484, 38], "text": "Was due on 20/09 · 09:00 ·…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
+          { "kind": "box", "rect": [25, 734, 290, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=100", "toast": "COMPLETED!" }, "children": [
+            { "kind": "text", "rect": [122, 744, 95, 38], "text": "Done", "size": 9, "lines": 1, "style": 1, "align": 1, "maxLines": 1, "fg": 0 }
           ] }
         ] },
-        { "kind": "box", "key": "task-101", "rect": [35, 842, 464, 212], "gap": 4, "children": [
-          { "kind": "text", "rect": [35, 842, 464, 108], "text": "Replace the smoke alarm batteries in…", "size": 13, "lines": 2, "maxLines": 2, "truncated": true },
-          { "kind": "text", "rect": [35, 954, 464, 38], "text": "Was due on 21/09 · Sam ·…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
-          { "kind": "box", "rect": [35, 996, 278, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=101", "toast": "COMPLETED!" }, "children": [
-            { "kind": "text", "rect": [126, 1006, 95, 38], "text": "Done", "size": 9, "lines": 1, "style": 1, "align": 1, "maxLines": 1, "fg": 0 }
+        { "kind": "box", "key": "task-101", "rect": [25, 817, 484, 212], "gap": 4, "children": [
+          { "kind": "text", "rect": [25, 817, 484, 108], "text": "Replace the smoke alarm batteries in…", "size": 13, "lines": 2, "maxLines": 2, "truncated": true },
+          { "kind": "text", "rect": [25, 929, 484, 38], "text": "Was due on 21/09 · Sam ·…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
+          { "kind": "box", "rect": [25, 971, 290, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=101", "toast": "COMPLETED!" }, "children": [
+            { "kind": "text", "rect": [122, 981, 95, 38], "text": "Done", "size": 9, "lines": 1, "style": 1, "align": 1, "maxLines": 1, "fg": 0 }
           ] }
         ] },
-        { "kind": "box", "key": "task-102", "rect": [35, 1089, 464, 158], "gap": 4, "children": [
-          { "kind": "text", "rect": [35, 1089, 464, 54], "text": "Descale the kettle", "size": 13, "lines": 1, "maxLines": 2 },
-          { "kind": "text", "rect": [35, 1147, 464, 38], "text": "Was due on 22/09 · yearly", "size": 9, "lines": 1, "maxLines": 1 },
-          { "kind": "box", "rect": [35, 1189, 278, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=102", "toast": "COMPLETED!" }, "children": [
-            { "kind": "text", "rect": [126, 1199, 95, 38], "text": "Done", "size": 9, "lines": 1, "style": 1, "align": 1, "maxLines": 1, "fg": 0 }
+        { "kind": "box", "key": "task-102", "rect": [25, 1054, 484, 158], "gap": 4, "children": [
+          { "kind": "text", "rect": [25, 1054, 484, 54], "text": "Descale the kettle", "size": 13, "lines": 1, "maxLines": 2 },
+          { "kind": "text", "rect": [25, 1112, 484, 38], "text": "Was due on 22/09 · yearly", "size": 9, "lines": 1, "maxLines": 1 },
+          { "kind": "box", "rect": [25, 1154, 290, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=102", "toast": "COMPLETED!" }, "children": [
+            { "kind": "text", "rect": [122, 1164, 95, 38], "text": "Done", "size": 9, "lines": 1, "style": 1, "align": 1, "maxLines": 1, "fg": 0 }
           ] }
         ] },
         { "kind": "box", "key": "task-103", "rect": [0, 0, 0, 0], "gap": 4, "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 464, 54], "text": "Pay the water bill", "size": 13, "lines": 1, "maxLines": 2 },
-          { "kind": "text", "rect": [0, 0, 464, 38], "text": "Was due on Tuesday · 09:…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
-          { "kind": "box", "rect": [0, 0, 278, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=103", "toast": "COMPLETED!" }, "children": [
+          { "kind": "text", "rect": [0, 0, 484, 54], "text": "Pay the water bill", "size": 13, "lines": 1, "maxLines": 2 },
+          { "kind": "text", "rect": [0, 0, 484, 38], "text": "Was due on Tuesday · 09:0…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
+          { "kind": "box", "rect": [0, 0, 290, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=103", "toast": "COMPLETED!" }, "children": [
             { "kind": "text", "rect": [0, 0, 95, 38], "text": "Done", "size": 9, "lines": 1, "style": 1, "align": 1, "maxLines": 1, "fg": 0 }
           ] }
         ] },
         { "kind": "box", "key": "task-104", "rect": [0, 0, 0, 0], "gap": 4, "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 464, 108], "text": "Prune the lemon tree", "size": 13, "lines": 2, "maxLines": 2 },
-          { "kind": "text", "rect": [0, 0, 464, 38], "text": "Was due on Wednesday ·…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
-          { "kind": "box", "rect": [0, 0, 278, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=104", "toast": "COMPLETED!" }, "children": [
+          { "kind": "text", "rect": [0, 0, 484, 108], "text": "Prune the lemon tree", "size": 13, "lines": 2, "maxLines": 2 },
+          { "kind": "text", "rect": [0, 0, 484, 38], "text": "Was due on Wednesday ·…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
+          { "kind": "box", "rect": [0, 0, 290, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=104", "toast": "COMPLETED!" }, "children": [
             { "kind": "text", "rect": [0, 0, 95, 38], "text": "Done", "size": 9, "lines": 1, "style": 1, "align": 1, "maxLines": 1, "fg": 0 }
           ] }
         ] },
         { "kind": "box", "key": "task-105", "rect": [0, 0, 0, 0], "gap": 4, "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 464, 108], "text": "Vacuum under the couch", "size": 13, "lines": 2, "maxLines": 2 },
-          { "kind": "text", "rect": [0, 0, 464, 38], "text": "Was due yesterday · yearly", "size": 9, "lines": 1, "maxLines": 1 },
-          { "kind": "box", "rect": [0, 0, 278, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=105", "toast": "COMPLETED!" }, "children": [
+          { "kind": "text", "rect": [0, 0, 484, 108], "text": "Vacuum under the couch", "size": 13, "lines": 2, "maxLines": 2 },
+          { "kind": "text", "rect": [0, 0, 484, 38], "text": "Was due yesterday · yearly", "size": 9, "lines": 1, "maxLines": 1 },
+          { "kind": "box", "rect": [0, 0, 290, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=105", "toast": "COMPLETED!" }, "children": [
             { "kind": "text", "rect": [0, 0, 95, 38], "text": "Done", "size": 9, "lines": 1, "style": 1, "align": 1, "maxLines": 1, "fg": 0 }
           ] }
         ] },
         { "kind": "box", "key": "task-106", "rect": [0, 0, 0, 0], "gap": 4, "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 464, 108], "text": "Back up the family photos", "size": 13, "lines": 2, "maxLines": 2 },
-          { "kind": "text", "rect": [0, 0, 464, 38], "text": "Due today · 09:00 · Eddie…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
-          { "kind": "box", "rect": [0, 0, 278, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=106", "toast": "COMPLETED!" }, "children": [
+          { "kind": "text", "rect": [0, 0, 484, 108], "text": "Back up the family photos", "size": 13, "lines": 2, "maxLines": 2 },
+          { "kind": "text", "rect": [0, 0, 484, 38], "text": "Due today · 09:00 · Eddie ·…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
+          { "kind": "box", "rect": [0, 0, 290, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=106", "toast": "COMPLETED!" }, "children": [
             { "kind": "text", "rect": [0, 0, 95, 38], "text": "Done", "size": 9, "lines": 1, "style": 1, "align": 1, "maxLines": 1, "fg": 0 }
           ] }
         ] },
         { "kind": "box", "key": "task-107", "rect": [0, 0, 0, 0], "gap": 4, "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 464, 54], "text": "Rotate the mattress", "size": 13, "lines": 1, "maxLines": 2 },
-          { "kind": "text", "rect": [0, 0, 464, 38], "text": "Due on Saturday · Sam ·…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
-          { "kind": "box", "rect": [0, 0, 278, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=107", "toast": "COMPLETED!" }, "children": [
+          { "kind": "text", "rect": [0, 0, 484, 54], "text": "Rotate the mattress", "size": 13, "lines": 1, "maxLines": 2 },
+          { "kind": "text", "rect": [0, 0, 484, 38], "text": "Due on Saturday · Sam ·…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
+          { "kind": "box", "rect": [0, 0, 290, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=107", "toast": "COMPLETED!" }, "children": [
             { "kind": "text", "rect": [0, 0, 95, 38], "text": "Done", "size": 9, "lines": 1, "style": 1, "align": 1, "maxLines": 1, "fg": 0 }
           ] }
         ] },
         { "kind": "box", "key": "task-108", "rect": [0, 0, 0, 0], "gap": 4, "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 464, 54], "text": "Service the bike", "size": 13, "lines": 1, "maxLines": 2 },
-          { "kind": "text", "rect": [0, 0, 464, 38], "text": "Was due on 20/09 · yearly", "size": 9, "lines": 1, "maxLines": 1 },
-          { "kind": "box", "rect": [0, 0, 278, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=108", "toast": "COMPLETED!" }, "children": [
+          { "kind": "text", "rect": [0, 0, 484, 54], "text": "Service the bike", "size": 13, "lines": 1, "maxLines": 2 },
+          { "kind": "text", "rect": [0, 0, 484, 38], "text": "Was due on 20/09 · yearly", "size": 9, "lines": 1, "maxLines": 1 },
+          { "kind": "box", "rect": [0, 0, 290, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=108", "toast": "COMPLETED!" }, "children": [
             { "kind": "text", "rect": [0, 0, 95, 38], "text": "Done", "size": 9, "lines": 1, "style": 1, "align": 1, "maxLines": 1, "fg": 0 }
           ] }
         ] },
         { "kind": "box", "key": "task-109", "rect": [0, 0, 0, 0], "gap": 4, "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 464, 108], "text": "Clear out the garage shelves", "size": 13, "lines": 2, "maxLines": 2 },
-          { "kind": "text", "rect": [0, 0, 464, 38], "text": "Was due on 21/09 · 09:00…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
-          { "kind": "box", "rect": [0, 0, 278, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=109", "toast": "COMPLETED!" }, "children": [
+          { "kind": "text", "rect": [0, 0, 484, 108], "text": "Clear out the garage shelves", "size": 13, "lines": 2, "maxLines": 2 },
+          { "kind": "text", "rect": [0, 0, 484, 38], "text": "Was due on 21/09 · 09:00 ·…", "size": 9, "lines": 1, "maxLines": 1, "truncated": true },
+          { "kind": "box", "rect": [0, 0, 290, 58], "dir": "row", "main": 1, "cross": 2, "w": "60%", "pad": [8, 12, 8, 12], "border": 2, "bg": 192, "action": { "kind": 1, "path": "/api/tasks/complete.php", "body": "task_id=109", "toast": "COMPLETED!" }, "children": [
             { "kind": "text", "rect": [0, 0, 95, 38], "text": "Done", "size": 9, "lines": 1, "style": 1, "align": 1, "maxLines": 1, "fg": 0 }
           ] }
         ] },
-        { "kind": "text", "key": "__overflow__", "rect": [35, 1282, 464, 38], "text": "… +7 more", "size": 9, "lines": 1, "maxLines": 1 }
+        { "kind": "text", "key": "__overflow__", "rect": [25, 1237, 484, 38], "text": "… +7 more", "size": 9, "lines": 1, "maxLines": 1 }
       ] },
-      { "kind": "box", "rect": [534, 556, 4, 836], "w": "4", "bg": 64 },
-      { "kind": "box", "rect": [538, 556, 534, 836], "gap": 5, "clip": true, "w": "flex:1", "pad": [0, 35, 0, 35], "children": [
-        { "kind": "text", "rect": [573, 556, 464, 58], "text": "TODAY", "size": 14, "lines": 1, "maxLines": 1 },
-        { "kind": "box", "rect": [573, 619, 464, 33], "dir": "row", "gap": 5, "children": [
-          { "kind": "text", "rect": [573, 619, 185, 33], "text": "1:00am", "size": 8, "lines": 1, "maxLines": 1, "w": "40%" },
-          { "kind": "box", "rect": [763, 619, 274, 33], "gap": 2, "w": "flex:1", "children": [
-            { "kind": "text", "rect": [763, 619, 274, 33], "text": "Event number 0…", "size": 8, "lines": 1, "maxLines": 1, "truncated": true }
+      { "kind": "box", "rect": [534, 551, 4, 841], "w": "4", "bg": 64 },
+      { "kind": "box", "rect": [538, 551, 534, 841], "gap": 4, "clip": true, "w": "flex:1", "pad": [0, 25, 0, 25], "children": [
+        { "kind": "text", "rect": [563, 551, 484, 58], "text": "TODAY", "size": 14, "lines": 1, "maxLines": 1 },
+        { "kind": "box", "rect": [563, 613, 484, 33], "dir": "row", "gap": 4, "children": [
+          { "kind": "text", "rect": [563, 613, 193, 33], "text": "1:00am", "size": 8, "lines": 1, "maxLines": 1, "w": "40%" },
+          { "kind": "box", "rect": [760, 613, 287, 33], "gap": 2, "w": "flex:1", "children": [
+            { "kind": "text", "rect": [760, 613, 287, 33], "text": "Event number 0…", "size": 8, "lines": 1, "maxLines": 1, "truncated": true }
           ] }
         ] },
-        { "kind": "box", "rect": [573, 657, 464, 33], "dir": "row", "gap": 5, "children": [
-          { "kind": "text", "rect": [573, 657, 185, 33], "text": "2:00am", "size": 8, "lines": 1, "maxLines": 1, "w": "40%" },
-          { "kind": "box", "rect": [763, 657, 274, 33], "gap": 2, "w": "flex:1", "children": [
-            { "kind": "text", "rect": [763, 657, 274, 33], "text": "Event number 1…", "size": 8, "lines": 1, "maxLines": 1, "truncated": true }
+        { "kind": "box", "rect": [563, 650, 484, 33], "dir": "row", "gap": 4, "children": [
+          { "kind": "text", "rect": [563, 650, 193, 33], "text": "2:00am", "size": 8, "lines": 1, "maxLines": 1, "w": "40%" },
+          { "kind": "box", "rect": [760, 650, 287, 33], "gap": 2, "w": "flex:1", "children": [
+            { "kind": "text", "rect": [760, 650, 287, 33], "text": "Event number 1…", "size": 8, "lines": 1, "maxLines": 1, "truncated": true }
           ] }
         ] },
-        { "kind": "box", "rect": [573, 695, 464, 203], "dir": "row", "gap": 5, "pad": [30, 0, 0, 0], "children": [
-          { "kind": "text", "rect": [573, 725, 185, 173], "text": "3:00am", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
-          { "kind": "box", "rect": [763, 725, 274, 173], "gap": 2, "w": "flex:1", "children": [
-            { "kind": "text", "rect": [763, 725, 274, 138], "text": "Event number 2 with a…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
-            { "kind": "text", "rect": [763, 865, 274, 33], "text": "— Personal", "size": 8, "lines": 1, "maxLines": 1 }
+        { "kind": "box", "rect": [563, 687, 484, 194], "dir": "row", "gap": 4, "pad": [21, 0, 0, 0], "children": [
+          { "kind": "text", "rect": [563, 708, 193, 173], "text": "3:00am", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
+          { "kind": "box", "rect": [760, 708, 287, 173], "gap": 2, "w": "flex:1", "children": [
+            { "kind": "text", "rect": [760, 708, 287, 138], "text": "Event number 2 with a reasonably…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
+            { "kind": "text", "rect": [760, 848, 287, 33], "text": "— Personal", "size": 8, "lines": 1, "maxLines": 1 }
           ] }
         ] },
-        { "kind": "box", "rect": [573, 903, 464, 203], "dir": "row", "gap": 5, "pad": [30, 0, 0, 0], "children": [
-          { "kind": "text", "rect": [573, 933, 185, 173], "text": "4:00am", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
-          { "kind": "box", "rect": [763, 933, 274, 173], "gap": 2, "w": "flex:1", "children": [
-            { "kind": "text", "rect": [763, 933, 274, 138], "text": "Event number 3 with a…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
-            { "kind": "text", "rect": [763, 1073, 274, 33], "text": "— Work", "size": 8, "lines": 1, "maxLines": 1 }
+        { "kind": "box", "rect": [563, 885, 484, 194], "dir": "row", "gap": 4, "pad": [21, 0, 0, 0], "children": [
+          { "kind": "text", "rect": [563, 906, 193, 173], "text": "4:00am", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
+          { "kind": "box", "rect": [760, 906, 287, 173], "gap": 2, "w": "flex:1", "children": [
+            { "kind": "text", "rect": [760, 906, 287, 138], "text": "Event number 3 with a reasonably…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
+            { "kind": "text", "rect": [760, 1046, 287, 33], "text": "— Work", "size": 8, "lines": 1, "maxLines": 1 }
           ] }
         ] },
-        { "kind": "box", "rect": [573, 1111, 464, 203], "dir": "row", "gap": 5, "pad": [30, 0, 0, 0], "children": [
-          { "kind": "text", "rect": [573, 1141, 185, 173], "text": "5:00am", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
-          { "kind": "box", "rect": [763, 1141, 274, 173], "gap": 2, "w": "flex:1", "children": [
-            { "kind": "text", "rect": [763, 1141, 274, 138], "text": "Event number 4 with a…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
-            { "kind": "text", "rect": [763, 1281, 274, 33], "text": "— Personal", "size": 8, "lines": 1, "maxLines": 1 }
+        { "kind": "box", "rect": [563, 1083, 484, 194], "dir": "row", "gap": 4, "pad": [21, 0, 0, 0], "children": [
+          { "kind": "text", "rect": [563, 1104, 193, 173], "text": "5:00am", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
+          { "kind": "box", "rect": [760, 1104, 287, 173], "gap": 2, "w": "flex:1", "children": [
+            { "kind": "text", "rect": [760, 1104, 287, 138], "text": "Event number 4 with a reasonably…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
+            { "kind": "text", "rect": [760, 1244, 287, 33], "text": "— Personal", "size": 8, "lines": 1, "maxLines": 1 }
           ] }
         ] },
-        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 5, "pad": [30, 0, 0, 0], "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 185, 173], "text": "6:00am", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
-          { "kind": "box", "rect": [0, 0, 274, 173], "gap": 2, "w": "flex:1", "children": [
-            { "kind": "text", "rect": [0, 0, 274, 138], "text": "Event number 5 with a…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
-            { "kind": "text", "rect": [0, 0, 274, 33], "text": "— Work", "size": 8, "lines": 1, "maxLines": 1 }
+        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 4, "pad": [21, 0, 0, 0], "dropped": true, "children": [
+          { "kind": "text", "rect": [0, 0, 193, 173], "text": "6:00am", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
+          { "kind": "box", "rect": [0, 0, 287, 173], "gap": 2, "w": "flex:1", "children": [
+            { "kind": "text", "rect": [0, 0, 287, 138], "text": "Event number 5 with a reasonably…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
+            { "kind": "text", "rect": [0, 0, 287, 33], "text": "— Work", "size": 8, "lines": 1, "maxLines": 1 }
           ] }
         ] },
-        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 5, "pad": [30, 0, 0, 0], "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 185, 173], "text": "7:00pm", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
-          { "kind": "box", "rect": [0, 0, 274, 173], "gap": 2, "w": "flex:1", "children": [
-            { "kind": "text", "rect": [0, 0, 274, 138], "text": "Event number 6 with a…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
-            { "kind": "text", "rect": [0, 0, 274, 33], "text": "— Personal", "size": 8, "lines": 1, "maxLines": 1 }
+        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 4, "pad": [21, 0, 0, 0], "dropped": true, "children": [
+          { "kind": "text", "rect": [0, 0, 193, 173], "text": "7:00pm", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
+          { "kind": "box", "rect": [0, 0, 287, 173], "gap": 2, "w": "flex:1", "children": [
+            { "kind": "text", "rect": [0, 0, 287, 138], "text": "Event number 6 with a reasonably…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
+            { "kind": "text", "rect": [0, 0, 287, 33], "text": "— Personal", "size": 8, "lines": 1, "maxLines": 1 }
           ] }
         ] },
-        { "kind": "text", "rect": [0, 0, 0, 0], "text": "TOMORROW", "size": 14, "lines": 1, "maxLines": 1, "pad": [30, 0, 0, 0], "dropped": true },
-        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 5, "pad": [30, 0, 0, 0], "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 185, 173], "text": "8:00pm", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
-          { "kind": "box", "rect": [0, 0, 274, 173], "gap": 2, "w": "flex:1", "children": [
-            { "kind": "text", "rect": [0, 0, 274, 138], "text": "Event number 7 with a…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
-            { "kind": "text", "rect": [0, 0, 274, 33], "text": "— Work", "size": 8, "lines": 1, "maxLines": 1 }
+        { "kind": "text", "rect": [0, 0, 0, 0], "text": "TOMORROW", "size": 14, "lines": 1, "maxLines": 1, "pad": [21, 0, 0, 0], "dropped": true },
+        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 4, "pad": [21, 0, 0, 0], "dropped": true, "children": [
+          { "kind": "text", "rect": [0, 0, 193, 173], "text": "8:00pm", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
+          { "kind": "box", "rect": [0, 0, 287, 173], "gap": 2, "w": "flex:1", "children": [
+            { "kind": "text", "rect": [0, 0, 287, 138], "text": "Event number 7 with a reasonably…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
+            { "kind": "text", "rect": [0, 0, 287, 33], "text": "— Work", "size": 8, "lines": 1, "maxLines": 1 }
           ] }
         ] },
-        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 5, "pad": [30, 0, 0, 0], "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 185, 173], "text": "9:00pm", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
-          { "kind": "box", "rect": [0, 0, 274, 173], "gap": 2, "w": "flex:1", "children": [
-            { "kind": "text", "rect": [0, 0, 274, 138], "text": "Event number 8 with a…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
-            { "kind": "text", "rect": [0, 0, 274, 33], "text": "— Personal", "size": 8, "lines": 1, "maxLines": 1 }
+        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 4, "pad": [21, 0, 0, 0], "dropped": true, "children": [
+          { "kind": "text", "rect": [0, 0, 193, 173], "text": "9:00pm", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
+          { "kind": "box", "rect": [0, 0, 287, 173], "gap": 2, "w": "flex:1", "children": [
+            { "kind": "text", "rect": [0, 0, 287, 138], "text": "Event number 8 with a reasonably…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
+            { "kind": "text", "rect": [0, 0, 287, 33], "text": "— Personal", "size": 8, "lines": 1, "maxLines": 1 }
           ] }
         ] },
-        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 5, "pad": [30, 0, 0, 0], "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 185, 173], "text": "10:00pm", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
-          { "kind": "box", "rect": [0, 0, 274, 173], "gap": 2, "w": "flex:1", "children": [
-            { "kind": "text", "rect": [0, 0, 274, 138], "text": "Event number 9 with a…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
-            { "kind": "text", "rect": [0, 0, 274, 33], "text": "— Work", "size": 8, "lines": 1, "maxLines": 1 }
+        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 4, "pad": [21, 0, 0, 0], "dropped": true, "children": [
+          { "kind": "text", "rect": [0, 0, 193, 173], "text": "10:00pm", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
+          { "kind": "box", "rect": [0, 0, 287, 173], "gap": 2, "w": "flex:1", "children": [
+            { "kind": "text", "rect": [0, 0, 287, 138], "text": "Event number 9 with a reasonably…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
+            { "kind": "text", "rect": [0, 0, 287, 33], "text": "— Work", "size": 8, "lines": 1, "maxLines": 1 }
           ] }
         ] },
-        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 5, "pad": [30, 0, 0, 0], "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 185, 173], "text": "11:00pm", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
-          { "kind": "box", "rect": [0, 0, 274, 173], "gap": 2, "w": "flex:1", "children": [
-            { "kind": "text", "rect": [0, 0, 274, 138], "text": "Event number 10 with a…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
-            { "kind": "text", "rect": [0, 0, 274, 33], "text": "— Personal", "size": 8, "lines": 1, "maxLines": 1 }
+        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 4, "pad": [21, 0, 0, 0], "dropped": true, "children": [
+          { "kind": "text", "rect": [0, 0, 193, 173], "text": "11:00pm", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
+          { "kind": "box", "rect": [0, 0, 287, 173], "gap": 2, "w": "flex:1", "children": [
+            { "kind": "text", "rect": [0, 0, 287, 138], "text": "Event number 10 with a reasonably…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
+            { "kind": "text", "rect": [0, 0, 287, 33], "text": "— Personal", "size": 8, "lines": 1, "maxLines": 1 }
           ] }
         ] },
-        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 5, "pad": [30, 0, 0, 0], "dropped": true, "children": [
-          { "kind": "text", "rect": [0, 0, 185, 173], "text": "1:00pm", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
-          { "kind": "box", "rect": [0, 0, 274, 173], "gap": 2, "w": "flex:1", "children": [
-            { "kind": "text", "rect": [0, 0, 274, 138], "text": "Event number 11 with a…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
-            { "kind": "text", "rect": [0, 0, 274, 33], "text": "— Work", "size": 8, "lines": 1, "maxLines": 1 }
+        { "kind": "box", "rect": [0, 0, 0, 0], "dir": "row", "gap": 4, "pad": [21, 0, 0, 0], "dropped": true, "children": [
+          { "kind": "text", "rect": [0, 0, 193, 173], "text": "1:00pm", "size": 11, "lines": 1, "maxLines": 1, "w": "40%" },
+          { "kind": "box", "rect": [0, 0, 287, 173], "gap": 2, "w": "flex:1", "children": [
+            { "kind": "text", "rect": [0, 0, 287, 138], "text": "Event number 11 with a reasonably…", "size": 11, "lines": 3, "maxLines": 3, "truncated": true },
+            { "kind": "text", "rect": [0, 0, 287, 33], "text": "— Work", "size": 8, "lines": 1, "maxLines": 1 }
           ] }
         ] },
-        { "kind": "text", "key": "__overflow__", "rect": [573, 1319, 464, 33], "text": "… +8 more", "size": 8, "lines": 1, "maxLines": 1 }
+        { "kind": "text", "key": "__overflow__", "rect": [563, 1281, 484, 33], "text": "… +8 more", "size": 8, "lines": 1, "maxLines": 1 }
       ] }
     ] }
   ] },

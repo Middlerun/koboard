@@ -11,13 +11,14 @@ if [ ! -f "$BASE/config" ]; then
 # HomeSrv Kobo client config.
 #
 # One numbered block per server; the first is the one the app starts on, and
-# the menu (bottom-right corner of the screen) switches between them.
+# the menu (bottom-right corner of the screen) switches between them. A URL is
+# the screen itself, not just the host.
 SERVER_1_NAME=Home
-SERVER_1_URL=http://192.168.1.1:8080
+SERVER_1_URL=http://192.168.1.1:8082/api/ui.php
 SERVER_1_TOKEN=your_token_here
 
 #SERVER_2_NAME=Test
-#SERVER_2_URL=http://192.168.1.1:8083
+#SERVER_2_URL=http://192.168.1.1:8083/api/ui.php
 #SERVER_2_TOKEN=your_test_token_here
 EOF
 	echo "[$(date '+%Y-%m-%d %H:%M:%S')] first run: config template created at $BASE/config" > "$LOG"

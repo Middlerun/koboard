@@ -13,7 +13,8 @@ Features:
 - Touch input via libevdev
 - Invisible corner targets: bottom left refetches, bottom right opens the menu
 - Menu: switch between configured servers (prod/test), or quit
-- Auto-refresh every 30 minutes, and immediately after a tap
+- Refreshes as often as the server asks (30 minutes by default), and
+  immediately after a tap
 - Full-screen takeover (stops/restarts Nickel, like KOReader)
 
 ## Layout
@@ -36,6 +37,8 @@ nothing else does. See [docs/ui-schema.md](docs/ui-schema.md).
 - `src/main.c` — event loop, touch dispatch, network, refresh policy
 - `src/screens.c` / `.h` — the chrome the client owns: status, menu, messages
 - `src/config.c` / `.h` — the config file: the list of servers to choose from
+- `src/policy.c` / `.h` — refresh/ping/flash intervals: a server's envelope, made safe
+- `src/touch.c` / `.h` — keeps touches away from the paused Nickel (grab, and wait for lift on exit)
 - `src/ui_json.c` / `.h` — builds a tree from the server's JSON (cJSON), and
   substitutes the client-side values in it, such as the clock
 - `src/ui.h` / `ui.c` — node schema, arena, builder macros, hit testing
@@ -47,9 +50,10 @@ nothing else does. See [docs/ui-schema.md](docs/ui-schema.md).
 - `src/preview.c` — host preview binary
 - `src/app.h` — app state
 - `src/http.c` / `.h` — socket-based HTTP/1.0 client
-- `fixtures/` — dashboard data to render, preview and test against
+- `fixtures/*.json` — UI trees, exactly as a server sends them, to preview and test against
 - `fixtures/servers.config` — server list for the menu preview and its goldens
 - `tests/golden/` — expected layout rects, compared by `make test`
+- `tests/unit.c` — unit tests for URLs, the envelope and the refresh policy
 - `fonts/DejaVuSans*.ttf` — bundled fonts, downloaded at build time
 - `scripts/homesrv.sh` — launcher: stops Nickel, runs homesrv, restores Nickel
 - `nm/homesrv` — NickelMenu config (main menu entries)
@@ -72,23 +76,24 @@ file kobo/build/homesrv   # expect: ELF 32-bit ARM EABI5
 ## Preview (no device needed)
 
 The layout engine builds for the host too, so a UI change can be seen in a
-second instead of a cross-compile and a reinstall. Needs `php` on the host: the
-tree comes from the server's builder, fixture and all.
+second instead of a cross-compile and a reinstall. It draws any UI tree — a
+fixture, a server's saved output, or a live server:
 
 ```bash
 make -C kobo preview                      # renders fixtures/typical.json
 make -C kobo preview FIXTURE=overflow     # 10 tasks, 12 events
 make -C kobo preview FIXTURE=empty        # no tasks, events or weather
 make -C kobo preview FIXTURE=finished     # several already-finished events
+make -C kobo preview UI=path/to/tree.json # any tree file
 make -C kobo open-preview                 # render and open the PNG
 make -C kobo preview FIXTURE=typical PREVIEW_ARGS=--toast   # tap feedback
 make -C kobo preview SCREEN=menu          # the menu, from fixtures/servers.config
+make -C kobo preview-live URL=http://192.168.1.50:8082/api/ui.php TOKEN=abc123
 
 # Invisible targets cannot be checked by looking at a PNG, so ask the hit test:
-build/homesrv-preview --ui build/ui-typical-glo.json --hit 700,1000 \
+build/homesrv-preview --ui fixtures/typical.json --hit 700,1000 \
     --font fonts/DejaVuSans.ttf --out /dev/null
 # -> 700,1000: menu action=4 target=menu rect=[663,968,70,44]
-make -C kobo preview-live SERVER=http://192.168.1.50:8082 TOKEN=abc123
 ```
 
 PNGs land in `kobo/build/preview-<fixture>-<device>.png`. Both a Glo (758x1024
@@ -96,23 +101,30 @@ PNGs land in `kobo/build/preview-<fixture>-<device>.png`. Both a Glo (758x1024
 layout is never tuned for one panel by accident; narrow it with
 `PREVIEW_DEVICES=glo`.
 
-Each fixture goes through `bin/render-ui.php` — the same builder `/api/ui.php`
-uses — and then through the same parser, layout engine and text metrics as the
+A tree goes through the same parser, layout engine and text metrics as on the
 device. Only the painter differs, so glyph rasterisation can differ by a pixel;
-layout is identical. `preview-live` skips the fixture and fetches a real tree
-from a running server.
+layout is identical. `preview-live` fetches the tree the way the device does:
+the URL with the panel's geometry appended, and the token as a bearer header.
+
+Working on HomeSrv's dashboard itself? `bin/kobo-preview` (in the repo root)
+builds the tree from HomeSrv's data fixtures with the same code `/api/ui.php`
+runs, then draws it with this preview.
 
 ## Tests
 
 ```bash
-make -C kobo test     # compare every node's rect against tests/golden/
+make -C kobo test     # unit tests, then every node's rect against tests/golden/
 make -C kobo golden   # accept the current layout as the new expectation
 ```
 
-`make test` builds every fixture's UI on the server side, renders it at every
-device size and diffs the computed rects. A regression in either half — what
-the server describes or how the client lays it out — fails here, on your desk,
-rather than on the Kobo.
+The unit tests cover the protocol side — URL parsing and resolution, the
+envelope, and the floors and defaults of the refresh policy — which is where an
+unusual value from someone else's server is most likely to land.
+
+`make test` renders every fixture tree at every device size and diffs the
+computed rects, so a layout regression fails here, on your desk, rather than
+on the Kobo. It needs no server: the fixtures are trees, and what a server
+*sends* is that server's to test (HomeSrv's: `bin/test-ui`).
 
 ## Install
 
@@ -122,7 +134,7 @@ rather than on the Kobo.
 
 ```bash
 make -C kobo install
-# answers: http://192.168.x.x:8080  and  the token
+# answers: http://192.168.x.x:8082/api/ui.php  and  the token
 ```
 
 Or copy `kobo/dist/.adds/` onto the Kobo manually and create the config file:
@@ -130,9 +142,15 @@ Or copy `kobo/dist/.adds/` onto the Kobo manually and create the config file:
 ```
 # /mnt/onboard/.adds/homesrv/config
 SERVER_1_NAME=Home
-SERVER_1_URL=http://192.168.x.x:8080
+SERVER_1_URL=http://192.168.x.x:8082/api/ui.php
 SERVER_1_TOKEN=abc123...
 ```
+
+`SERVER_n_URL` is the URL of the screen itself, not just the host: the client
+fetches exactly that, with `w`, `h` and `dpi` appended, and resolves everything
+the server sends back (action paths, the ping URL) against it. The token is
+sent as `Authorization: Bearer <token>`, and can be left out for a server that
+does not need one. Only `http://` is supported.
 
 ### More than one server
 
@@ -141,11 +159,11 @@ without a restart — which is how you point the device at a test server and bac
 
 ```
 SERVER_1_NAME=Home
-SERVER_1_URL=http://192.168.1.50:8082
+SERVER_1_URL=http://192.168.1.50:8082/api/ui.php
 SERVER_1_TOKEN=abc123
 
 SERVER_2_NAME=Test
-SERVER_2_URL=http://192.168.1.50:8083
+SERVER_2_URL=http://192.168.1.50:8083/api/ui.php
 SERVER_2_TOKEN=def456
 ```
 

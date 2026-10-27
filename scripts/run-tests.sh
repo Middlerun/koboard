@@ -1,11 +1,11 @@
 #!/bin/sh
 # Golden layout tests.
 #
-# Builds every fixture's UI on the server side (bin/render-ui.php), renders it
-# at every device size, and compares the computed rect of every node against a
-# checked-in dump. A regression in either half — what the server describes or
-# how the client lays it out — shows up here, on the desktop, instead of on the
-# Kobo.
+# Renders every fixture — a UI tree, exactly as a server would send it — at
+# every device size, and compares the computed rect of every node against a
+# checked-in dump. A layout regression shows up here, on the desktop, instead
+# of on the Kobo. No server is involved: what a particular server *sends* is
+# that server's to test.
 #
 #   scripts/run-tests.sh build/homesrv-preview check    # compare (exit 1 on diff)
 #   scripts/run-tests.sh build/homesrv-preview update   # rewrite the goldens
@@ -13,7 +13,6 @@ set -eu
 
 BIN="$1"
 MODE="${2:-check}"
-PHP="${PHP:-php}"
 DIR="$(dirname "$0")/.."
 cd "$DIR"
 
@@ -65,10 +64,7 @@ for fixture in $FIXTURES; do
 	for dev in $DEVICES; do
 		name="$fixture-$dev"
 		out="build/layout-$name.json"
-		width="$("$BIN" --print-device "$dev" | cut -d' ' -f1)"
-		"$PHP" ../bin/render-ui.php "fixtures/$fixture.json" --width "$width" \
-			> "build/ui-$name.json"
-		"$BIN" --ui "build/ui-$name.json" --device "$dev" --now "$NOW" \
+		"$BIN" --ui "fixtures/$fixture.json" --device "$dev" --now "$NOW" \
 			--font fonts/DejaVuSans.ttf \
 			--font-bold fonts/DejaVuSans-Bold.ttf \
 			--out "build/test-$name.png" \

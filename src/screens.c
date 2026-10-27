@@ -32,7 +32,7 @@ static UiNode *status_row(UiArena *a, const struct Theme *t,
 
 	return CHILDREN(BOX(a, .key = KEY_STATUS, .dir = UI_ROW,
 			.main = UI_MAIN_BETWEEN, .cross = UI_CROSS_END,
-			.pad = { 0, t->margin, 12, t->margin }),
+			.pad = { 0, (int16_t) t->margin, 12, (int16_t) t->margin }),
 		CHILDREN(BOX(a, .key = KEY_REFRESH, .dir = UI_ROW, .h = PX(44),
 			 .cross = UI_CROSS_END,
 			 // The target draws nothing, so the toast is the only sign

@@ -62,33 +62,43 @@ static char *read_all(int fd, size_t *out_len)
 	return buf;
 }
 
-static int http_request(int fd, const char *method, const char *host,
+static int http_request(int fd, const char *method, const char *host, int port,
 			const char *path, const char *token,
 			const char *post_data)
 {
-	char buf[2048];
-	int n;
+	char buf[4096];
+	char hostline[160];
+	char auth[128] = "";
 
+	// The port belongs in Host whenever it is not the default, or a virtual
+	// host on a non-standard port will not recognise the request.
+	if (port == 80) snprintf(hostline, sizeof(hostline), "%s", host);
+	else            snprintf(hostline, sizeof(hostline), "%s:%d", host, port);
+
+	if (token && *token)
+		snprintf(auth, sizeof(auth), "Authorization: Bearer %s\r\n", token);
+
+	int n;
 	if (post_data) {
 		n = snprintf(buf, sizeof(buf),
 			"%s %s HTTP/1.0\r\n"
 			"Host: %s\r\n"
-			"X-API-Token: %s\r\n"
+			"%s"
 			"Content-Type: application/x-www-form-urlencoded\r\n"
 			"Content-Length: %zu\r\n"
 			"Connection: close\r\n"
 			"\r\n"
 			"%s",
-			method, path, host, token, strlen(post_data),
+			method, path, hostline, auth, strlen(post_data),
 			post_data);
 	} else {
 		n = snprintf(buf, sizeof(buf),
 			"%s %s HTTP/1.0\r\n"
 			"Host: %s\r\n"
-			"X-API-Token: %s\r\n"
+			"%s"
 			"Connection: close\r\n"
 			"\r\n",
-			method, path, host, token);
+			method, path, hostline, auth);
 	}
 
 	if (n < 0 || (size_t) n >= sizeof(buf)) return -1;
@@ -118,38 +128,106 @@ static char *skip_headers(char *response, size_t len)
 	return NULL;
 }
 
-static int do_request(const char *server_url, const char *path,
-		      const char *method, const char *token,
+// ---- URLs ----------------------------------------------------------------
+
+int url_parse(const char *url, struct Url *out)
+{
+	memset(out, 0, sizeof(*out));
+	if (!url) return -1;
+
+	if (strncmp(url, "https://", 8) == 0) {
+		fprintf(stderr, "homesrv: %s: https is not supported, "
+			"only http://\n", url);
+		return -1;
+	}
+	if (strncmp(url, "http://", 7) != 0) return -1;
+
+	const char *host = url + 7;
+	size_t authority = strcspn(host, "/?#");
+	const char *rest = host + authority;
+
+	// host[:port], looking for the colon only inside the authority, so a
+	// colon later in the path cannot be mistaken for a port.
+	const char *colon = memchr(host, ':', authority);
+	size_t hlen = colon ? (size_t) (colon - host) : authority;
+	if (hlen == 0 || hlen >= sizeof(out->host)) return -1;
+	memcpy(out->host, host, hlen);
+	out->host[hlen] = '\0';
+
+	out->port = 80;
+	if (colon) {
+		out->port = atoi(colon + 1);
+		if (out->port <= 0 || out->port > 65535) return -1;
+	}
+
+	// The fragment is the browser's business, never the server's.
+	size_t plen = strcspn(rest, "#");
+	if (plen == 0) {
+		snprintf(out->path, sizeof(out->path), "/");
+	} else {
+		if (plen + (*rest == '/' ? 0 : 1) >= sizeof(out->path)) return -1;
+		snprintf(out->path, sizeof(out->path), "%s%.*s",
+			 *rest == '/' ? "" : "/", (int) plen, rest);
+	}
+	return 0;
+}
+
+int url_resolve(const char *base, const char *ref, char *out, size_t outsz)
+{
+	if (!ref || !*ref) ref = "";
+
+	if (strncmp(ref, "http://", 7) == 0 || strncmp(ref, "https://", 8) == 0) {
+		int n = snprintf(out, outsz, "%s", ref);
+		return (n < 0 || (size_t) n >= outsz) ? -1 : 0;
+	}
+
+	// The origin: everything up to the first '/' after the scheme.
+	const char *after = strstr(base, "://");
+	after = after ? after + 3 : base;
+	size_t origin = (size_t) (after - base) + strcspn(after, "/?#");
+
+	if (ref[0] == '/') {
+		int n = snprintf(out, outsz, "%.*s%s", (int) origin, base, ref);
+		return (n < 0 || (size_t) n >= outsz) ? -1 : 0;
+	}
+
+	// Relative: base's path up to and including its last '/', without the
+	// query — "http://h/api/ui.php?w=1" + "x.php" is "http://h/api/x.php".
+	size_t pathlen = strcspn(base + origin, "?#");
+	size_t dir = origin;
+	for (size_t i = origin; i < origin + pathlen; i++)
+		if (base[i] == '/') dir = i + 1;
+
+	int n;
+	if (dir == origin)   // no path at all: "http://h" + "x" is "http://h/x"
+		n = snprintf(out, outsz, "%.*s/%s", (int) origin, base, ref);
+	else
+		n = snprintf(out, outsz, "%.*s%s", (int) dir, base, ref);
+	return (n < 0 || (size_t) n >= outsz) ? -1 : 0;
+}
+
+int url_with_query(const char *url, const char *query, char *out, size_t outsz)
+{
+	size_t len = strcspn(url, "#");
+	const char *sep = memchr(url, '?', len) ? "&" : "?";
+	int n = snprintf(out, outsz, "%.*s%s%s", (int) len, url, sep, query);
+	return (n < 0 || (size_t) n >= outsz) ? -1 : 0;
+}
+
+// ---- requests ------------------------------------------------------------
+
+static int do_request(const char *url, const char *method, const char *token,
 		      const char *post_data, struct HttpResponse *resp)
 {
 	memset(resp, 0, sizeof(*resp));
 
-	char host[128];
-	int  port = 80;
-	const char *p = server_url;
-	if (strncmp(p, "http://", 7) == 0) p += 7;
-	char *colon = strchr(p, ':');
-	char *slash = strchr(p, '/');
-	if (colon) {
-		size_t hlen = (size_t) (colon - p);
-		if (hlen >= sizeof(host)) return -1;
-		memcpy(host, p, hlen);
-		host[hlen] = '\0';
-		port = atoi(colon + 1);
-	} else if (slash) {
-		size_t hlen = (size_t) (slash - p);
-		if (hlen >= sizeof(host)) return -1;
-		memcpy(host, p, hlen);
-		host[hlen] = '\0';
-	} else {
-		strncpy(host, p, sizeof(host) - 1);
-		host[sizeof(host) - 1] = '\0';
-	}
+	struct Url u;
+	if (url_parse(url, &u) < 0) return -1;
 
-	int fd = http_connect(host, port);
+	int fd = http_connect(u.host, u.port);
 	if (fd < 0) return -1;
 
-	if (http_request(fd, method, host, path, token, post_data) < 0) {
+	if (http_request(fd, method, u.host, u.port, u.path, token, post_data) < 0) {
 		close(fd);
 		return -1;
 	}
@@ -174,17 +252,15 @@ static int do_request(const char *server_url, const char *path,
 	return 0;
 }
 
-int http_get(const char *server_url, const char *path,
-	     const char *token, struct HttpResponse *resp)
+int http_get(const char *url, const char *token, struct HttpResponse *resp)
 {
-	return do_request(server_url, path, "GET", token, NULL, resp);
+	return do_request(url, "GET", token, NULL, resp);
 }
 
-int http_post(const char *server_url, const char *path,
-	      const char *token, const char *post_data,
+int http_post(const char *url, const char *token, const char *post_data,
 	      struct HttpResponse *resp)
 {
-	return do_request(server_url, path, "POST", token, post_data, resp);
+	return do_request(url, "POST", token, post_data, resp);
 }
 
 void http_free_response(struct HttpResponse *resp)
