@@ -31,7 +31,6 @@ EMOJI_CODEPOINTS = {
     0x26C5,   # sun behind cloud
     0x26C8,   # thunder cloud and rain
     0x2744,   # snowflake
-    0x2746,   # heavy chevron snowflake
     0x1F324,  # sun behind small cloud
     0x1F325,  # sun behind large cloud
     0x1F326,  # sun behind rain cloud

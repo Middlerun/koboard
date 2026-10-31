@@ -1,0 +1,16 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    # The host build: layout engine, parser and painters compiled natively, so
+    # this needs no cross-compiler and no Kobo. The device build (podman +
+    # NickelTC) is left to releases.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests and golden layouts
+        run: make test

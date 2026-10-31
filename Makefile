@@ -16,6 +16,9 @@ FONT_NAME      := DejaVuSans.ttf
 FONT_BOLD_NAME := DejaVuSans-Bold.ttf
 FONTS_DIR      := fonts
 FONTS          := $(FONTS_DIR)/$(FONT_NAME) $(FONTS_DIR)/$(FONT_BOLD_NAME)
+# The fonts' licences require their text to travel with every copy, the
+# device package included.
+FONT_LICENSES  := $(FONTS_DIR)/LICENSE-DejaVu.txt $(FONTS_DIR)/OFL-NotoEmoji.txt
 
 KOBO_MOUNT     ?= /run/media/$(USER)/KOBOeReader
 
@@ -44,6 +47,11 @@ UI_SRCS := src/ui.c src/ui_layout.c src/ui_paint.c src/ui_text.c \
 UB_SRCS := $(UNIBREAK_DIR)/linebreak.c $(UNIBREAK_DIR)/linebreakdata.c \
            $(UNIBREAK_DIR)/linebreakdef.c $(UNIBREAK_DIR)/unibreakbase.c \
            $(UNIBREAK_DIR)/unibreakdef.c
+
+# libunibreak arrives with the FBInk checkout. Saying so is what lets a fresh
+# clone build: without it, make looks for these files before it has cloned
+# anything, and stops.
+$(UB_SRCS): | $(FBINK_DIR)
 
 # Headers are listed as prerequisites too: without them, editing a struct or a
 # constant leaves a stale binary behind.
@@ -123,12 +131,13 @@ build/koboard: $(SRCS) $(HDRS) $(FBINK_DIR)/Release/libfbink.a
 	mkdir -p build
 	$(PODMAN_MAKE) inner-app
 
-dist: build/koboard scripts/koboard.sh nm/koboard $(FONTS)
+dist: build/koboard scripts/koboard.sh nm/koboard $(FONTS) $(FONT_LICENSES) LICENSE
 	rm -rf dist
 	mkdir -p $(DIST_APP)/bin $(DIST_APP)/fonts $(DIST_NM)
 	cp build/koboard $(DIST_APP)/bin/koboard
+	cp LICENSE $(DIST_APP)/LICENSE
 	cp scripts/koboard.sh $(DIST_APP)/koboard.sh
-	cp $(FONTS) $(DIST_APP)/fonts/
+	cp $(FONTS) $(FONT_LICENSES) $(DIST_APP)/fonts/
 	cp nm/koboard $(DIST_NM)/koboard
 	tar -czf dist/koboard-$(VERSION).tgz -C dist .adds
 	@echo "dist/ staged; copy dist/.adds onto the Kobo or run 'make install'"
