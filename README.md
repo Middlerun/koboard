@@ -38,16 +38,36 @@ Authorization: Bearer <token>
     "pad": 30,
     "gap": 10,
     "children": [
-      { "kind": "text", "text": "{clock:%H:%M}", "size": 40, "key": "clock" },
-      { "kind": "text", "text": "Hello from my server", "size": 14 },
+      {
+        "kind": "text",
+        "text": "{clock:%H:%M}",
+        "size": 40,
+        "key": "clock"
+      },
+      {
+        "kind": "text",
+        "text": "Hello from my server",
+        "size": 14
+      },
       {
         "kind": "box",
         "w": "40%",
         "border": 2,
         "pad": [8, 12, 8, 12],
-        "action": { "kind": 1, "path": "/done", "body": "id=1", "toast": "OK!" },
+        "action": {
+          "kind": 1,
+          "path": "/done",
+          "body": "id=1",
+          "toast": "OK!"
+        },
         "children": [
-          { "kind": "text", "text": "Done", "size": 11, "style": 1, "align": 1 }
+          {
+            "kind": "text",
+            "text": "Done",
+            "size": 11,
+            "style": 1,
+            "align": 1
+          }
         ]
       }
     ]
