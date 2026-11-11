@@ -20,6 +20,103 @@ Launched from [NickelMenu], rendered with [FBInk] (OpenType text), cross-compile
 - **Works when the server doesn't**: the status line, the menu and its two invisible corner targets are drawn by the client, so you can always switch server or quit.
 - **Full-screen takeover**: pauses Nickel while running, like KOReader, and hands the screen and touch panel back cleanly on exit.
 
+## Installing on a Kobo
+
+`make install` builds Koboard and copies everything it needs — the binary, the fonts, the launcher and the NickelMenu entries — onto a USB-connected Kobo. It then asks for your server's URL and token and writes the config file. Nothing has to be set up on the device beforehand except [NickelMenu].
+
+### Prerequisites
+
+On the machine doing the build and install:
+
+- podman, for the NickelTC cross-compiler container
+- git and curl, to fetch FBInk and cJSON during the build
+- a C compiler, for the host preview and tests
+- python3 + fonttools — only to regenerate the bundled fonts; the fonts are checked in, so a normal build does not need it
+
+On the device:
+
+- **[NickelMenu] installed.** It provides the main-menu entries that launch Koboard and show its version; without it nothing on the device launches Koboard. (Koboard is not a `.kobo` mod and does not replace Nickel.)
+- **A Wi-Fi network that reaches your server.** The launch entry chains a Wi-Fi autoconnect, so the Kobo does not need to be online when you install, but it does when you launch. See [Writing a server](#writing-a-server).
+- **A USB cable**, and a Kobo on firmware 4.x (developed against a Glo and a Glo HD).
+
+### Install with `make install`
+
+1. Connect the Kobo over USB. On the device, tap **Connect** when asked whether to connect to the computer — the reader mounts as a removable drive, by default at `/run/media/<user>/KOBOeReader`.
+2. Run the install:
+
+   ```bash
+   make install
+   ```
+
+   It checks that a Kobo is actually mounted (a `.kobo` directory exists), copies `dist/.adds/` onto it, and — if there is no config file yet — prompts for the screen URL and token. An existing config is left alone, so re-running `make install` is how you upgrade without losing your servers. If the Kobo mounts somewhere else, point the Makefile at it: `make install KOBO_MOUNT=/media/kobo`. A plain `make` cross-compiles the same binary into `build/koboard` without touching the Kobo; `file build/koboard` should report `ELF 32-bit ARM EABI5`.
+3. Eject the Kobo, then open the main menu and choose **Koboard**.
+
+What ends up on the device:
+
+```
+.adds/
+  koboard/
+    bin/koboard        the ARM binary
+    fonts/             DejaVu Sans, regular and bold, with their licences
+    koboard.sh         pauses Nickel, runs Koboard, resumes Nickel
+    LICENSE
+    config             written by make install (or a template on first launch)
+  nm/koboard           the two NickelMenu entries
+```
+
+### Install by hand
+
+`make dist` stages the same tree in `dist/.adds/` and packages it as `dist/koboard-<version>.tgz`, for a machine where the Kobo is not mounted where the Makefile expects (or for handing the app to someone else). Copy it across and extract at the root of the Kobo:
+
+```bash
+make dist
+tar -xzf dist/koboard-*.tgz -C /run/media/$USER/KOBOeReader
+```
+
+That extracts `.adds/` itself, so do not also `cd` into `.adds`. Then create the config by hand as described below, unless you already have one.
+
+### The config file
+
+The config lives at `.adds/koboard/config` on the Kobo. `make install` creates it on the first install; without it, the launcher writes a commented template when Koboard first starts, and the app starts on the placeholder server in it until you edit it. A minimal file is:
+
+```
+SERVER_1_NAME=Home
+SERVER_1_URL=http://192.168.1.10:8080/dashboard
+SERVER_1_TOKEN=abc123...
+```
+
+`SERVER_n_URL` is the URL of the screen itself, not just the host: the client fetches exactly that, with `w`, `h` and `dpi` appended, and resolves everything the server sends back (action paths, the ping URL) against it. The token is sent as `Authorization: Bearer <token>`, and can be left out for a server that does not need one. Only `http://` is supported — there is no TLS, so the token crosses your network in the clear.
+
+### More than one server
+
+List up to six; the app starts on the first, and the menu switches between them without a restart — which is how you point the device at a test server and back:
+
+```
+SERVER_1_NAME=Home
+SERVER_1_URL=http://192.168.1.10:8080/dashboard
+SERVER_1_TOKEN=abc123
+
+SERVER_2_NAME=Test
+SERVER_2_URL=http://192.168.1.10:8081/dashboard
+SERVER_2_TOKEN=def456
+```
+
+`SERVER_n_NAME` is optional and defaults to the host:port. Gaps in the numbering are fine. The choice is not remembered across restarts: the app always comes back up on server 1.
+
+## Usage
+
+NickelMenu gets two entries on the main menu:
+
+- **Koboard** — launches the dashboard (full-screen takeover, exits on SIGTERM)
+- **Koboard Version** — message box showing the version and FBInk's
+
+On screen, two corners are tap targets and neither draws anything:
+
+- **bottom left** — refetch the UI now, without waiting for the next refresh
+- **bottom right** — open the menu: switch server, close, or quit
+
+Both work on the connecting/loading screens too, so an unreachable server can always be swapped for another one. The app pauses Nickel on launch and resumes it on exit.
+
 ## Writing a server
 
 Your server needs one URL that returns a UI tree as JSON:
@@ -87,39 +184,6 @@ The server sends a tree of nodes; the client parses it, the layout engine comput
 
 The client wraps the server's tree in the little it still owns: the status line along the bottom, and the menu. Those have to work when nothing else does.
 
-- `src/main.c` — event loop, touch dispatch, network, refresh policy
-- `src/screens.c` / `.h` — the chrome the client owns: status, menu, messages
-- `src/config.c` / `.h` — the config file: the list of servers to choose from
-- `src/policy.c` / `.h` — refresh/ping/flash intervals: a server's envelope, made safe
-- `src/touch.c` / `.h` — keeps touches away from the paused Nickel (grab, and wait for lift on exit)
-- `src/ui_json.c` / `.h` — builds a tree from the server's JSON (cJSON), and substitutes the client-side values in it, such as the clock
-- `src/ui.h` / `ui.c` — node schema, arena, builder macros, hit testing
-- `src/ui_layout.c` — layout engine (portable, no FBInk)
-- `src/ui_text.c` — text measurement, mirroring FBInk's OpenType metrics
-- `src/ui_paint.c` / `ui_paint.h` — painter interface and the paint walk
-- `src/paint_fbink.c` — device painter (the only file that knows FBInk's API)
-- `src/paint_stb.c` — host painter, rasterises to a PNG for `make preview`
-- `src/preview.c` — host preview binary
-- `src/app.h` — app state
-- `src/http.c` / `.h` — socket-based HTTP/1.0 client
-- `fixtures/*.json` — UI trees, exactly as a server sends them, to preview and test against
-- `fixtures/servers.config` — server list for the menu preview and its goldens
-- `tests/golden/` — expected layout rects, compared by `make test`
-- `tests/unit.c` — unit tests for URLs, the envelope and the refresh policy
-- `fonts/DejaVuSans*.ttf` — bundled fonts (DejaVu Sans, with weather symbols merged in from Noto Emoji — see [Fonts](#fonts)); their licences are alongside them
-- `scripts/koboard.sh` — launcher: pauses Nickel, runs Koboard, resumes Nickel
-- `nm/koboard` — NickelMenu config (main menu entries)
-- `Makefile` — build orchestration via podman/NickelTC
-- `vendor/FBInk/` — FBInk v1.25.0, cloned on demand
-- `vendor/cJSON/` — cJSON v1.7.15, downloaded at build time
-
-## Prerequisites
-
-- podman (for the cross-compiler)
-- git, curl
-- a C compiler, for the host preview and tests
-- python3 + fonttools — only to regenerate the bundled fonts; the fonts are checked in, so a normal build does not need it
-
 ## Fonts
 
 Text is drawn in DejaVu Sans, regular and bold. On top of DejaVu's own coverage, the bundled fonts carry a set of weather symbols merged in from Noto Emoji, so a server can use them in any text node — a forecast is one of the most common things a dashboard shows:
@@ -135,13 +199,6 @@ scripts/make-font.sh   # regenerates fonts/DejaVuSans.ttf and fonts/DejaVuSans-B
 ```
 
 To offer servers a different set of symbols, change `EMOJI_CODEPOINTS` in `scripts/merge-emoji.py`, run it again, and update the list above.
-
-## Build
-
-```bash
-make
-file build/koboard   # expect: ELF 32-bit ARM EABI5
-```
 
 ## Preview (no device needed)
 
@@ -179,57 +236,6 @@ The unit tests cover the protocol side — URL parsing and resolution, the envel
 
 `make test` renders every fixture tree at every device size and diffs the computed rects, so a layout regression fails here, on your desk, rather than on the Kobo. It needs no server: the fixtures are trees, and what a server *sends* is that server's to test.
 
-## Install
-
-1. Make sure your server is running and reachable from the Kobo's network.
-2. Connect the Kobo over USB, confirm the connection on the device, then:
-
-```bash
-make install
-# asks for the screen URL and the token
-```
-
-Or copy `dist/.adds/` onto the Kobo manually and create the config file:
-
-```
-# /mnt/onboard/.adds/koboard/config
-SERVER_1_NAME=Home
-SERVER_1_URL=http://192.168.1.10:8080/dashboard
-SERVER_1_TOKEN=abc123...
-```
-
-`SERVER_n_URL` is the URL of the screen itself, not just the host: the client fetches exactly that, with `w`, `h` and `dpi` appended, and resolves everything the server sends back (action paths, the ping URL) against it. The token is sent as `Authorization: Bearer <token>`, and can be left out for a server that does not need one. Only `http://` is supported — there is no TLS, so the token crosses your network in the clear.
-
-### More than one server
-
-List up to six; the app starts on the first, and the menu switches between them without a restart — which is how you point the device at a test server and back:
-
-```
-SERVER_1_NAME=Home
-SERVER_1_URL=http://192.168.1.10:8080/dashboard
-SERVER_1_TOKEN=abc123
-
-SERVER_2_NAME=Test
-SERVER_2_URL=http://192.168.1.10:8081/dashboard
-SERVER_2_TOKEN=def456
-```
-
-`SERVER_n_NAME` is optional and defaults to the host:port. Gaps in the numbering are fine. The choice is not remembered across restarts: the app always comes back up on server 1.
-
-## Usage
-
-NickelMenu gets two entries on the main menu:
-
-- **Koboard** — launches the dashboard (full-screen takeover, exits on SIGTERM)
-- **Koboard Version** — message box showing the version and FBInk's
-
-On screen, two corners are tap targets and neither draws anything:
-
-- **bottom left** — refetch the UI now, without waiting for the next refresh
-- **bottom right** — open the menu: switch server, close, or quit
-
-Both work on the connecting/loading screens too, so an unreachable server can always be swapped for another one. The app pauses Nickel on launch and resumes it on exit.
-
 ## Troubleshooting
 
 - `.adds/koboard/koboard.log` on the Kobo — most recent run output
@@ -239,7 +245,7 @@ Both work on the connecting/loading screens too, so an unreachable server can al
 
 ## Uninstall
 
-Delete `.adds/koboard/` and `.adds/nm/koboard` from the Kobo.
+Delete `.adds/koboard/` and `.adds/nm/koboard` from the Kobo, then restart the device so Nickel reloads its menu. Deleting the folder also removes your config and log.
 
 ## Next steps
 
